@@ -103,7 +103,7 @@ export default function PrintCards(props: Props) {
   };
 
   return (
-    <div className="print-root min-h-screen bg-white text-black">
+    <div className="print-root min-h-screen pt-safe-area bg-white text-black">
       <div className="no-print sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-gray-200">
         <div className="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -113,7 +113,7 @@ export default function PrintCards(props: Props) {
                 Drucken: Medikamentekarten
               </div>
               <div className="text-xs text-gray-500">
-                Tipp: Im Druckdialog auf “Als PDF speichern” oder direkt drucken.
+                Tipp: Im Druckdialog direkt drucken oder speichern.
               </div>
             </div>
           </div>

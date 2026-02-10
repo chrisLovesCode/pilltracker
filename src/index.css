@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+:root {
+  /* Safe-area env vars are supported on iOS and on newer Android/WebView edge-to-edge setups. */
+  --pt-safe-top: env(safe-area-inset-top, 0px);
+  --pt-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.pt-safe-area {
+  padding-top: var(--pt-safe-top);
+  padding-bottom: var(--pt-safe-bottom);
+}
+
 /* Custom Animations */
 @keyframes fadeIn {
   from {

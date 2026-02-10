@@ -5,6 +5,18 @@ import './lib/i18n'; // Initialize i18n
 import { initDb, isNativePlatform } from './db';
 import App from './App.tsx';
 
+async function configureAndroidSystemBars() {
+  try {
+    const mod = await import('@capacitor/status-bar');
+    // Ensure the WebView is laid out below the Android status bar, and use dark icons.
+    await mod.StatusBar.setOverlaysWebView({ overlay: false });
+    await mod.StatusBar.setStyle({ style: mod.Style.Light }); // dark text/icons
+    await mod.StatusBar.setBackgroundColor({ color: '#EEF2FF' });
+  } catch (e) {
+    console.warn('[Main] Failed to configure system bars:', e);
+  }
+}
+
 // Browser check: DB only works on native platforms
 if (!isNativePlatform()) {
   console.warn('[Main] ⚠️ Running in browser - database not available');
@@ -17,6 +29,9 @@ if (!isNativePlatform()) {
     </StrictMode>,
   );
 } else {
+  // Best-effort: configure status bar before rendering to avoid overlap with the header.
+  void configureAndroidSystemBars();
+
   // Native platform: Initialize DB first
   console.log('[Main] Initializing database...');
   initDb()
@@ -45,4 +60,3 @@ if (!isNativePlatform()) {
       }
     });
 }
-

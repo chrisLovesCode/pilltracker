@@ -1,11 +1,9 @@
 {
   "app": {
-    "title": "PillTracker",
-    "subtitle": "Deine persönliche Medikamenten-Tracking App"
+    "title": "PillTracker"
   },
   "common": {
-    "loading": "Lädt...",
-    "subtitle": "Deine persönliche Medikamenten-Tracking App"
+    "loading": "Lädt..."
   },
   "navigation": {
     "medications": "Medikamente",
@@ -74,8 +72,6 @@
     "cancel": "Abbrechen",
     "confirm": "Bestätigen",
     "slideToTrack": "Zum Tracken wischen",
-    "exportPDF": "PDF exportieren",
-    "exportAllPDF": "Alle als PDF exportieren",
     "removeFromGroup": "Aus Gruppe entfernen",
     "menu": "Menü",
     "changeLanguage": "Sprache wechseln"
@@ -88,9 +84,5 @@
     "title": "Einstellungen",
     "language": "Sprache",
     "notifications": "Benachrichtigungen"
-  },
-  "pdf": {
-    "title": "Medikamentenkarte",
-    "generatedOn": "Erstellt am"
   }
 }

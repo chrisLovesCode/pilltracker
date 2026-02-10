@@ -12,6 +12,11 @@
 			"iosIsEncryption": false,
 			"androidIsEncryption": false,
 			"electronIsEncryption": false
+		},
+		"StatusBar": {
+			"overlaysWebView": false,
+			"style": "LIGHT",
+			"backgroundColor": "#EEF2FF"
 		}
 	}
 }

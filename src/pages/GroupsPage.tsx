@@ -10,7 +10,6 @@ import { Button, Card } from '../components/ui';
 import { SlideToTrack } from '../components/medication/SlideToTrack';
 import { GroupForm } from '../components/group/GroupForm';
 import { useGroups } from '../hooks/useGroups';
-import { generateGroupPDF } from '../lib/pdf/generator';
 import type { Group, GroupFormData } from '../types';
 
 export function GroupsPage() {
@@ -37,10 +36,6 @@ export function GroupsPage() {
     if (confirm(t('confirmations.deleteGroup'))) {
       await deleteGroup(id);
     }
-  };
-
-  const handleExportPDF = async (group: Group) => {
-    await generateGroupPDF(group, i18n.language);
   };
 
   return (
@@ -85,14 +80,6 @@ export function GroupsPage() {
                 </div>
                 
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => handleExportPDF(group)}
-                    className="text-gray-400 hover:text-green-600 transition-colors"
-                    title={t('actions.exportPDF')}
-                    data-testid="export-group-pdf-button"
-                  >
-                    <Icon icon="mdi:file-pdf" className="text-xl" />
-                  </button>
                   <button
                     onClick={() => setEditingGroup(group)}
                     className="text-gray-400 hover:text-indigo-600 transition-colors"

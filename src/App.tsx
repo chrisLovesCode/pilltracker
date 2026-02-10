@@ -16,7 +16,6 @@ import NotificationsDebug from './pages/NotificationsDebug';
 import PrintCards from './pages/PrintCards';
 import { useMedications } from './hooks/useMedications';
 import { useGroups } from './hooks/useGroups';
-import { generateMedicationPDF, generateAllMedicationsPDF, generateGroupPDF } from './lib/pdf/generator';
 import { printCurrentView } from './lib/print';
 import { isNativePlatform } from './db';
 import { 
@@ -39,6 +38,7 @@ function App() {
   const [scrollToMedicationId, setScrollToMedicationId] = useState<string | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [activeView, setActiveView] = useState<'main' | 'print'>('main');
+  const showDebugUI = import.meta.env.VITE_SHOW_DEBUG_UI === 'true';
 
   /**
    * Initialize notification system on mount
@@ -104,27 +104,6 @@ function App() {
     if (confirm(t('confirmations.deleteMedication'))) {
       await deleteMedication(id);
     }
-  };
-
-  /**
-   * Export single medication as PDF
-   */
-  const handleExportPDF = async (medication: Medication) => {
-    await generateMedicationPDF(medication, i18n.language);
-  };
-
-  /**
-   * Export all medications as PDF
-   */
-  const handleExportAllPDF = async () => {
-    await generateAllMedicationsPDF(medications, i18n.language);
-  };
-
-  /**
-   * Export group as PDF
-   */
-  const handleExportGroupPDF = async (group: Group) => {
-    await generateGroupPDF(group, i18n.language);
   };
 
   /**
@@ -288,8 +267,12 @@ function App() {
         </div>
 
         {lastIntake && (
-          <p className="text-base font-semibold text-indigo-600 mb-3" data-testid="last-intake" aria-label="last-intake">
-            {t('medications.lastTaken')}: {formatDateTime(lastIntake.takenAt)}
+          <p
+            className="text-base font-semibold text-indigo-600 mb-3 whitespace-pre-line"
+            data-testid="last-intake"
+            aria-label="last-intake"
+          >
+            {`${t('medications.lastTaken')}:\n${formatDateTime(lastIntake.takenAt)}`}
           </p>
         )}
 
@@ -326,7 +309,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+    <div className={`min-h-screen pt-safe-area bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 ${showDebugUI ? 'pb-28' : ''}`}>
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Header */}
         <header className="mb-8">
@@ -374,24 +357,6 @@ function App() {
                       {medications.length > 0 && (
                         <button
                           onClick={() => {
-                            handleExportAllPDF();
-                            setShowMenu(false);
-                          }}
-                          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors text-left"
-                          data-testid="menu-export-all-pdf"
-                          aria-label="menu-export-all-pdf"
-                        >
-                          <Icon icon="mdi:file-pdf" className="text-2xl text-red-600" />
-                          <div>
-                            <p className="font-medium text-gray-900">{t('actions.exportAllPDF')}</p>
-                            <p className="text-sm text-gray-500">{medications.length} {t('medications.title')}</p>
-                          </div>
-                        </button>
-                      )}
-
-                      {medications.length > 0 && (
-                        <button
-                          onClick={() => {
                             setActiveView('print');
                             setShowMenu(false);
                           }}
@@ -412,7 +377,6 @@ function App() {
               )}
             </div>
           </div>
-          <p className="text-gray-600">{t('common.subtitle')}</p>
         </header>
 
         {/* Action Buttons */}
@@ -609,7 +573,7 @@ function App() {
         />
       )}
 
-      {import.meta.env.VITE_SHOW_DEBUG_UI === 'true' && showDbDebug && (
+      {showDebugUI && showDbDebug && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto">
             <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
@@ -628,7 +592,7 @@ function App() {
       )}
 
       {/* Notifications Debug Modal */}
-      {import.meta.env.VITE_SHOW_DEBUG_UI === 'true' && showNotificationsDebug && (
+      {showDebugUI && showNotificationsDebug && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto">
             <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
@@ -646,9 +610,17 @@ function App() {
         </div>
       )}
 
-      {import.meta.env.VITE_SHOW_DEBUG_UI === 'true' && (
-        <footer className="fixed bottom-0 left-0 right-0 bg-gray-800 text-white py-2 px-4 flex justify-center items-center gap-4 text-sm z-40">
-          <span>PillTracker v1.0</span>
+      {showDebugUI && (
+        <footer
+          className="fixed bottom-0 left-0 right-0 bg-gray-800 text-white pt-2 pb-10 px-4 flex justify-center items-center gap-4 text-sm z-40"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 2.5rem)' }}
+        >
+          <span className="flex flex-col items-start leading-tight">
+            <span>PillTracker v1.0</span>
+            <span className="text-[11px] text-gray-300">
+              Build {String(__BUILD_DATE__).replace('T', ' ').slice(0, 16)}
+            </span>
+          </span>
           <button
             onClick={() => setShowDbDebug(true)}
             className="text-blue-300 hover:text-blue-100 underline"
@@ -661,7 +633,7 @@ function App() {
             className="text-green-300 hover:text-green-100 underline"
             aria-label="open-notifications-debug"
           >
-            🔔 Notifications
+            Notifications
           </button>
         </footer>
       )}
