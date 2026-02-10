@@ -25,6 +25,14 @@ Status: **Alpha / Testing** (Schema und Features koennen sich noch stark aendern
 Eine aktuelle Test-APK liegt unter:
 `Latest Android Release/pilltracker_v1.apk`
 
+## Screenshots
+
+Startseite:
+![Startseite](screenshots/android-home.png)
+
+Medikament bearbeiten:
+![Medikament bearbeiten](screenshots/android-edit-medication.png)
+
 ## Entwicklung (Web)
 
 ```bash
