@@ -1,5 +1,3 @@
-# ACHTUNG: Aktiv in Entwicklung. Dieser Hinweis verschwindet wenn letzte Bugs auf einigen realen Android Smartphones gefixt wurden.
-
 # PillTracker
 
 Offline-first Medikamenten-Tracking-App (React + Capacitor + native SQLite).
