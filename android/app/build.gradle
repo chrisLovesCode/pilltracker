@@ -1,6 +1,10 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
+// Ensure Android Studio "Run" uses the latest web bundle.
+// Disable via: ./gradlew assembleDebug -Ppilltracker.copyWeb=false
+def pilltrackerCopyWeb = (project.findProperty("pilltracker.copyWeb") ?: "true").toString().toBoolean()
+
 android {
     namespace = "com.pilltracker.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -23,6 +27,18 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+}
+
+if (pilltrackerCopyWeb) {
+    def pilltrackerRoot = rootProject.projectDir.parentFile // /pilltracker (parent of /android)
+
+    tasks.register("pilltrackerCopyWebAssets", Exec) {
+        workingDir pilltrackerRoot
+        commandLine "bash", "-lc", "npm run build && npx cap copy android"
+    }
+
+    // Hook into the app build so Android Studio refreshes assets automatically.
+    preBuild.dependsOn(tasks.named("pilltrackerCopyWebAssets"))
 }
 
 repositories {
