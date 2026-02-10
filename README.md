@@ -2,12 +2,28 @@
 
 Offline-first Medikamenten-Tracking-App (React + Capacitor + native SQLite).
 
+Status: **Alpha / Testing** (Schema und Features koennen sich noch stark aendern; Daten koennen bei Updates zurueckgesetzt werden).
+
 ## Stack
 
 - React + Vite + TypeScript
 - Capacitor (Android/iOS WebView Shell)
 - Native SQLite via `@capacitor-community/sqlite`
 - Local Notifications via `@capacitor/local-notifications`
+- Android Print Preview (native Print Framework) fuer druckfreundliche Medikamentenkarten
+
+## Worum geht's / Features
+
+- Medikamente anlegen/bearbeiten/loeschen (inkl. Dosierung, Notizen)
+- Einnahme tracken: per Slide markieren, inkl. **"zuletzt eingenommen"** Zeitstempel
+- Gruppen: Medikamente gruppieren und **"Track all"** fuer eine ganze Gruppe
+- Erinnerungen: Wochentage + Uhrzeiten pro Medikament, als lokale Benachrichtigungen
+- Export/Drucken: druckfreundliche Medikamentenkarten (ohne Server, ueber Android Druckvorschau)
+
+## APK (schnell testen)
+
+Eine aktuelle Test-APK liegt unter:
+`Latest Android Release/pilltracker_v1.apk`
 
 ## Entwicklung (Web)
 
@@ -36,3 +52,12 @@ Ziel: App bedienen ohne manuelles rumklicken und dabei SQL/Crash-Fehler sofort s
 
 Die Instrumentation-Tests sind hier:
 `android/app/src/androidTest/java/com/pilltracker/app/PillTrackerE2ETest.kt`
+
+## Release Build (APK erzeugen)
+
+```bash
+./build-android-release.sh
+```
+
+Ergebnis:
+`Latest Android Release/pilltracker_v1.apk`
