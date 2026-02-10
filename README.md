@@ -20,6 +20,11 @@ Status: **Alpha / Testing** (Schema und Features koennen sich noch stark aendern
 - Erinnerungen: Wochentage + Uhrzeiten pro Medikament, als lokale Benachrichtigungen
 - Export/Drucken: druckfreundliche Medikamentenkarten (ohne Server, ueber Android Druckvorschau)
 
+## Warum eine Android App und keine PWA?
+
+- Native planbare Benachrichtigungen ohne Webpush etc.
+- Persoenliche Weiterbildungszwecke bzgl. Capacitor und Android Studio / Test-Automation.
+
 ## APK (schnell testen)
 
 Eine aktuelle Test-APK liegt unter:
