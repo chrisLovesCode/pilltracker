@@ -56,7 +56,22 @@ class PillTrackerE2ETest {
         device.waitForIdle(3000)
 
         // Wait until the React UI is interactive.
-        waitDesc("add-medication-button", 30000)
+        val ready = waitDesc("add-medication-button", 30000)
+        if (ready == null) {
+            println("UI not ready (add-medication-button not found). Dumping logcat for diagnosis.")
+            println(dumpLogcatFiltered())
+            fail("UI not ready (add-medication-button not found)")
+        }
+    }
+
+    private fun dumpLogcatFiltered(): String {
+        return try {
+            device.executeShellCommand(
+                "sh -c \"logcat -d | grep -E '\\\\[DB\\\\]|\\\\[Migrations\\\\]|AndroidRuntime|CapacitorSQLite|sqlite|SQL|FATAL' | tail -n 200\""
+            )
+        } catch (e: Exception) {
+            "Failed to dump logcat: ${e.message}"
+        }
     }
 
     private fun waitDesc(desc: String, timeoutMs: Long = 15000): UiObject2? {
@@ -196,19 +211,6 @@ class PillTrackerE2ETest {
         // Keep log output small and relevant for this test.
         device.executeShellCommand("logcat -c")
 
-        fun dumpLogcat(label: String) {
-            try {
-                val out = device.executeShellCommand(
-                    "sh -c \"logcat -d | grep -E '\\\\[DB\\\\]|\\\\[Migrations\\\\]|AndroidRuntime|CapacitorSQLite|sqlite|SQL|FATAL' | tail -n 200\""
-                )
-                println("=== LOGCAT ($label) ===")
-                println(out)
-                println("=== /LOGCAT ===")
-            } catch (e: Exception) {
-                println("Failed to dump logcat: ${e.message}")
-            }
-        }
-
         fun resetDatabaseViaUi() {
             clickDesc("open-db-debug", 30000)
             clickDesc("db-init", 30000)
@@ -253,7 +255,9 @@ class PillTrackerE2ETest {
             val last = waitDesc("last-intake", 30000)
             assertNotNull("Expected last intake element not visible after tracking", last)
         } finally {
-            dumpLogcat("after test06")
+            println("=== LOGCAT (after test06) ===")
+            println(dumpLogcatFiltered())
+            println("=== /LOGCAT ===")
         }
     }
 }
