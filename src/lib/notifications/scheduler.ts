@@ -7,6 +7,22 @@
 import { LocalNotifications, ScheduleOptions } from '@capacitor/local-notifications';
 import type { Medication } from '../../types';
 
+function hashToU32(input: string): number {
+  // Deterministic 32-bit hash (djb2). Good enough for stable notification IDs.
+  let h = 5381;
+  for (let i = 0; i < input.length; i++) {
+    h = ((h << 5) + h + input.charCodeAt(i)) >>> 0;
+  }
+  return h >>> 0;
+}
+
+function notificationIdFor(medicationId: string, index: number): number {
+  // Android notification IDs are 32-bit signed ints. Keep well below Int.MAX_VALUE.
+  // Reserve 0 for safety.
+  const base = (hashToU32(medicationId) % 2_000_000) + 1; // 1..2,000,000
+  return base * 1000 + index; // <= ~2,000,000,999 (< 2,147,483,647)
+}
+
 /**
  * Request notification permissions
  */
@@ -115,7 +131,7 @@ export async function scheduleMedicationNotifications(medication: Medication): P
         
         date.setDate(now.getDate() + daysUntil);
 
-        const notificationId = parseInt(medication.id.replace(/\D/g, '').slice(0, 8)) * 1000 + notificationIndex;
+        const notificationId = notificationIdFor(medication.id, notificationIndex);
         notificationIndex++;
 
         notifications.push({
@@ -124,6 +140,7 @@ export async function scheduleMedicationNotifications(medication: Medication): P
           body: `Zeit für deine Medikation: ${medication.dosageAmount} ${medication.dosageUnit}`,
           schedule: {
             at: date,
+            repeats: true,
             every: 'week', // Repeat weekly on the same weekday
             allowWhileIdle: true,
           },
