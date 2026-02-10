@@ -32,7 +32,7 @@ echo -e "${GREEN}✓ Java configured${NC}\n"
 
 # Step 2: Build Web App
 echo -e "${YELLOW}[2/5] Building web app...${NC}"
-npm run build
+npm run build:android
 echo -e "${GREEN}✓ Web build complete${NC}\n"
 
 # Step 3: Sync to Android

@@ -379,6 +379,73 @@ class PillTrackerE2ETest {
             )
     }
 
+    private fun setSelectValueByJs(selector: String, value: String, timeoutMs: Long = 30000) {
+        waitForCss(selector, timeoutMs)
+        val script = """
+            var sel = ${JSONObject.quote(selector)};
+            var v = ${JSONObject.quote(value)};
+            var el = document.querySelector(sel);
+            if (!el) return "NO_ELEMENT";
+            el.focus();
+            el.value = v;
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            return el.value;
+        """.trimIndent()
+
+        onWebView(withId(webViewId()))
+            .forceJavascriptEnabled()
+            .check(
+                webMatches(
+                    Atoms.script(script, Atoms.castOrDie(String::class.java)),
+                    equalTo(value)
+                )
+            )
+    }
+
+    private fun captureAttrByJs(selector: String, attr: String, timeoutMs: Long = 30000): String {
+        waitForCss(selector, timeoutMs)
+        val script = """
+            var sel = ${JSONObject.quote(selector)};
+            var a = ${JSONObject.quote(attr)};
+            var el = document.querySelector(sel);
+            if (!el) return "";
+            return el.getAttribute(a) || "";
+        """.trimIndent()
+        return captureStringFromScript(script, timeoutMs)
+    }
+
+    private fun medicationIdByName(name: String, timeoutMs: Long = 30000): String {
+        val script = """
+            var n = ${JSONObject.quote(name)};
+            var cards = Array.from(document.querySelectorAll("[data-testid^='medication-card-']"));
+            for (var i = 0; i < cards.length; i++) {
+              var el = cards[i];
+              var txt = (el.innerText || el.textContent || "");
+              if (txt.indexOf(n) !== -1) {
+                var tid = el.getAttribute("data-testid") || "";
+                return tid.replace("medication-card-", "");
+              }
+            }
+            return "";
+        """.trimIndent()
+        val id = captureStringFromScript(script, timeoutMs).trim()
+        if (id.isEmpty()) throw AssertionError("Failed to resolve medication id by name: $name")
+        return id
+    }
+
+    private fun firstGroupId(timeoutMs: Long = 30000): String {
+        val script = """
+            var el = document.querySelector("[data-testid^='group-card-']");
+            if (!el) return "";
+            var tid = el.getAttribute("data-testid") || "";
+            return tid.replace("group-card-", "");
+        """.trimIndent()
+        val id = captureStringFromScript(script, timeoutMs).trim()
+        if (id.isEmpty()) throw AssertionError("Failed to resolve first group id")
+        return id
+    }
+
     private fun requireUiReady() {
         // The main UI should always have the action buttons.
         waitForCss("[aria-label='add-medication-button']", 45000)
@@ -427,6 +494,53 @@ class PillTrackerE2ETest {
 
         // Verify last intake appears
         waitForCss("[aria-label='last-intake']", 45000)
+    }
+
+    @Test
+    fun test02_groupTrackAllUpdatesLastIntake() {
+        requireUiReady()
+
+        // Clear DB to keep test deterministic.
+        clickCss("[aria-label='open-db-debug']")
+        clickCss("[aria-label='db-init']", 45000)
+        clickCss("[aria-label='db-clear-tables']", 45000)
+        clickCss("[aria-label='db-debug-close']", 45000)
+
+        // Create a group.
+        clickCss("[aria-label='add-group-button']")
+        setInputValueByJs("[aria-label='group-name-input']", "E2E Group")
+        clickCss("[aria-label='save-group-button']", 45000)
+
+        val gid = firstGroupId(45000)
+
+        // Create two medications and assign them to the group during creation.
+        fun createGroupedMed(name: String) {
+            clickCss("[aria-label='add-medication-button']")
+            setInputValueByJs("[aria-label='medication-name-input']", name)
+            setInputValueByJs("[aria-label='dosage-amount-input']", "1")
+            setCheckboxByJs("[aria-label='notifications-checkbox']", false)
+            setSelectValueByJs("[aria-label='group-select']", gid)
+            clickCss("[aria-label='save-medication-button']", 45000)
+            waitForCss("[aria-label^='track-medication-']", 45000)
+        }
+
+        val m1Name = "GroupMed One"
+        val m2Name = "GroupMed Two"
+        createGroupedMed(m1Name)
+        createGroupedMed(m2Name)
+
+        val m1 = medicationIdByName(m1Name, 45000)
+        val m2 = medicationIdByName(m2Name, 45000)
+
+        // Track all in group via slide.
+        swipeOnWebView(
+            startCss = "[aria-label='track-all-group-${gid}-handle']",
+            endCss = "[aria-label='track-all-group-${gid}']"
+        )
+
+        // Both meds in the group should now show a "Last taken" timestamp.
+        waitForCss("[data-testid='medication-card-${m1}'] [aria-label='last-intake']", 45000)
+        waitForCss("[data-testid='medication-card-${m2}'] [aria-label='last-intake']", 45000)
     }
 
     @Test

@@ -26,7 +26,7 @@ import type { Medication, Group } from './types';
 
 function App() {
   const { t, i18n } = useTranslation();
-  const { medications, loading, trackIntake, deleteMedication, createMedication, updateMedication } = useMedications();
+  const { medications, loading, trackIntake, deleteMedication, createMedication, updateMedication, refetch } = useMedications();
   const { groups, loading: groupsLoading, createGroup, updateGroup, deleteGroup, trackAllInGroup } = useGroups();
   const [showAddMedicationForm, setShowAddMedicationForm] = useState(false);
   const [showAddGroupForm, setShowAddGroupForm] = useState(false);
@@ -216,9 +216,8 @@ function App() {
    * Render a single medication card
    */
   const renderMedicationCard = (medication: Medication, inGroup: boolean = false) => {
-    const lastIntake = medication.intakes.length > 0 
-      ? medication.intakes[medication.intakes.length - 1]
-      : null;
+    // Intakes are ordered newest-first; show the most recent one.
+    const lastIntake = medication.intakes.length > 0 ? medication.intakes[0] : null;
     
     const isHighlighted = scrollToMedicationId === medication.id;
 
@@ -489,7 +488,11 @@ function App() {
                     {groupMedications.length > 0 && (
                       <div className="mb-4">
                         <SlideToTrack
-                          onTrack={() => trackAllInGroup(group.id)}
+                          onTrack={() => {
+                            // trackAllInGroup updates DB but not the medications hook state.
+                            // Refetch medications so "Last taken" timestamps update immediately.
+                            trackAllInGroup(group.id).then(() => refetch());
+                          }}
                           label={t('groups.trackAll')}
                           testId={`track-all-group-${group.id}`}
                         />
@@ -573,8 +576,7 @@ function App() {
         />
       )}
 
-      {/* DB Debug Modal */}
-      {showDbDebug && (
+      {import.meta.env.VITE_SHOW_DEBUG_UI === 'true' && showDbDebug && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto">
             <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
@@ -593,7 +595,7 @@ function App() {
       )}
 
       {/* Notifications Debug Modal */}
-      {showNotificationsDebug && (
+      {import.meta.env.VITE_SHOW_DEBUG_UI === 'true' && showNotificationsDebug && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto">
             <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
@@ -611,24 +613,25 @@ function App() {
         </div>
       )}
 
-      {/* Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-gray-800 text-white py-2 px-4 flex justify-center items-center gap-4 text-sm z-40">
-        <span>PillTracker v1.0</span>
-        <button
-          onClick={() => setShowDbDebug(true)}
-          className="text-blue-300 hover:text-blue-100 underline"
-          aria-label="open-db-debug"
-        >
-          DB Debug
-        </button>
-        <button
-          onClick={() => setShowNotificationsDebug(true)}
-          className="text-green-300 hover:text-green-100 underline"
-          aria-label="open-notifications-debug"
-        >
-          🔔 Notifications
-        </button>
-      </footer>
+      {import.meta.env.VITE_SHOW_DEBUG_UI === 'true' && (
+        <footer className="fixed bottom-0 left-0 right-0 bg-gray-800 text-white py-2 px-4 flex justify-center items-center gap-4 text-sm z-40">
+          <span>PillTracker v1.0</span>
+          <button
+            onClick={() => setShowDbDebug(true)}
+            className="text-blue-300 hover:text-blue-100 underline"
+            aria-label="open-db-debug"
+          >
+            DB Debug
+          </button>
+          <button
+            onClick={() => setShowNotificationsDebug(true)}
+            className="text-green-300 hover:text-green-100 underline"
+            aria-label="open-notifications-debug"
+          >
+            🔔 Notifications
+          </button>
+        </footer>
+      )}
     </div>
   );
 }

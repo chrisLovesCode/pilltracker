@@ -34,7 +34,8 @@ if (pilltrackerCopyWeb) {
 
     tasks.register("pilltrackerCopyWebAssets", Exec) {
         workingDir pilltrackerRoot
-        commandLine "bash", "-lc", "npm run build && npx cap copy android"
+        // Avoid login shell to prevent user dotfiles from polluting the build.
+        commandLine "bash", "-c", "npm run build:android && npx cap copy android"
     }
 
     // Hook into the app build so Android Studio refreshes assets automatically.

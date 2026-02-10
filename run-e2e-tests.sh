@@ -64,7 +64,7 @@ fi
 if [ "$SKIP_BUILD" = false ]; then
     # Step 3: Build Web App
     echo -e "${YELLOW}[3/6] Building web app...${NC}"
-    npm run build > /dev/null 2>&1
+    npm run build:android > /dev/null 2>&1
     echo -e "${GREEN}✓ Web build complete${NC}\n"
 
     # Step 4: Sync to Android

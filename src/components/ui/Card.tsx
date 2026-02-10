@@ -3,18 +3,16 @@
  * 
  * Container component with consistent styling for content sections.
  */
-import { ReactNode } from 'react';
+import { HTMLAttributes, ReactNode } from 'react';
 
-interface CardProps {
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
-  className?: string;
-  onClick?: () => void;
 }
 
 /**
  * Card container with shadow and rounded corners
  */
-export function Card({ children, className = '', onClick }: CardProps) {
+export function Card({ children, className = '', onClick, ...props }: CardProps) {
   return (
     <div 
       className={`
@@ -23,6 +21,7 @@ export function Card({ children, className = '', onClick }: CardProps) {
         ${className}
       `}
       onClick={onClick}
+      {...props}
     >
       {children}
     </div>
