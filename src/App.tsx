@@ -330,12 +330,12 @@ function App() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Header */}
         <header className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-3">
-              <Icon icon="mdi:pill" className="text-4xl text-indigo-600" />
-              <h1 className="text-3xl font-bold text-gray-900">PillTracker</h1>
-            </div>
-            <div className="relative">
+	          <div className="flex items-center justify-between mb-2">
+	            <div className="flex items-center gap-3">
+	              <Icon icon="mdi:pill" className="text-3xl text-indigo-600" />
+	              <h1 className="text-2xl font-bold leading-none text-indigo-600">PillTracker</h1>
+	            </div>
+	            <div className="relative">
                 <Button
                   variant="ghost"
                   size="sm"
