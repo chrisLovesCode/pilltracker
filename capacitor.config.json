@@ -5,10 +5,13 @@
   "server": {
     "androidScheme": "https"
   },
-  "plugins": {
-    "CapacitorSQLite": {
-      "iosDatabaseLocation": "Library/CapacitorDatabase",
-      "androidDatabaseLocation": "default"
-    }
-  }
+	"plugins": {
+		"CapacitorSQLite": {
+			"iosDatabaseLocation": "Library/CapacitorDatabase",
+			"androidDatabaseLocation": "default",
+			"iosIsEncryption": false,
+			"androidIsEncryption": false,
+			"electronIsEncryption": false
+		}
+	}
 }
