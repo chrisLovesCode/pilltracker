@@ -132,9 +132,7 @@ export default function PrintCards(props: Props) {
               onClick={onPrint}
               data-testid="print-cards-button"
               aria-label="print-cards-button"
-            >
-              Drucken
-            </Button>
+            />
           </div>
         </div>
       </div>

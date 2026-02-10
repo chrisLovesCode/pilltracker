@@ -4,6 +4,10 @@ apply plugin: 'kotlin-android'
 // Ensure Android Studio "Run" uses the latest web bundle.
 // Disable via: ./gradlew assembleDebug -Ppilltracker.copyWeb=false
 def pilltrackerCopyWeb = (project.findProperty("pilltracker.copyWeb") ?: "true").toString().toBoolean()
+// Select which Vite mode to use for the embedded web bundle:
+// - android (default): includes debug UI for local testing
+// - production: hides debug UI, intended for release builds
+def pilltrackerViteMode = (project.findProperty("pilltracker.viteMode") ?: "android").toString()
 
 android {
     namespace = "com.pilltracker.app"
@@ -35,7 +39,8 @@ if (pilltrackerCopyWeb) {
     tasks.register("pilltrackerCopyWebAssets", Exec) {
         workingDir pilltrackerRoot
         // Avoid login shell to prevent user dotfiles from polluting the build.
-        commandLine "bash", "-c", "npm run build:android && npx cap copy android"
+        def buildCmd = (pilltrackerViteMode == "production") ? "npm run build" : "npm run build:android"
+        commandLine "bash", "-c", "${buildCmd} && npx cap copy android"
     }
 
     // Hook into the app build so Android Studio refreshes assets automatically.

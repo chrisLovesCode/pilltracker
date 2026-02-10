@@ -654,4 +654,35 @@ class PillTrackerE2ETest {
 
         clickCss("[aria-label='notifications-debug-close']")
     }
+
+    @Test
+    fun test06_printCardsViewOpens() {
+        requireUiReady()
+
+        // Clear DB to keep test deterministic.
+        clickCss("[aria-label='open-db-debug']")
+        clickCss("[aria-label='db-init']", 45000)
+        clickCss("[aria-label='db-clear-tables']", 45000)
+        clickCss("[aria-label='db-debug-close']", 45000)
+
+        // Create one medication so the print view has at least one card.
+        clickCss("[aria-label='add-medication-button']")
+        setInputValueByJs("[aria-label='medication-name-input']", "Print Test Med")
+        setInputValueByJs("[aria-label='dosage-amount-input']", "3")
+        setCheckboxByJs("[aria-label='notifications-checkbox']", false)
+        clickCss("[aria-label='save-medication-button']", 45000)
+        waitForCss("[aria-label^='track-medication-']", 45000)
+
+        // Open menu and navigate to print cards view.
+        clickCss("[aria-label='menu-button']")
+        clickCss("[aria-label='menu-print-cards']", 45000)
+
+        // Verify print header + at least one printed card.
+        waitForCss("[data-testid='print-title']", 45000)
+        waitForCss("[data-testid^='print-medication-card-']", 45000)
+
+        // Navigate back to main UI.
+        clickCss("[aria-label='print-back']", 45000)
+        requireUiReady()
+    }
 }
