@@ -13,9 +13,11 @@ import { MedicationForm } from './components/medication/MedicationForm';
 import { GroupForm } from './components/group/GroupForm';
 import DbDebug from './pages/DbDebug';
 import NotificationsDebug from './pages/NotificationsDebug';
+import PrintCards from './pages/PrintCards';
 import { useMedications } from './hooks/useMedications';
 import { useGroups } from './hooks/useGroups';
 import { generateMedicationPDF, generateAllMedicationsPDF, generateGroupPDF } from './lib/pdf/generator';
+import { printCurrentView } from './lib/print';
 import { isNativePlatform } from './db';
 import { 
   requestNotificationPermissions, 
@@ -36,6 +38,7 @@ function App() {
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [scrollToMedicationId, setScrollToMedicationId] = useState<string | null>(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [activeView, setActiveView] = useState<'main' | 'print'>('main');
 
   /**
    * Initialize notification system on mount
@@ -310,6 +313,18 @@ function App() {
     );
   }
 
+  if (activeView === 'print') {
+    return (
+      <PrintCards
+        medications={medications}
+        groups={groups}
+        language={i18n.language}
+        onBack={() => setActiveView('main')}
+        onPrint={() => printCurrentView('PillTracker')}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -370,6 +385,24 @@ function App() {
                           <div>
                             <p className="font-medium text-gray-900">{t('actions.exportAllPDF')}</p>
                             <p className="text-sm text-gray-500">{medications.length} {t('medications.title')}</p>
+                          </div>
+                        </button>
+                      )}
+
+                      {medications.length > 0 && (
+                        <button
+                          onClick={() => {
+                            setActiveView('print');
+                            setShowMenu(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors text-left"
+                          data-testid="menu-print-cards"
+                          aria-label="menu-print-cards"
+                        >
+                          <Icon icon="mdi:printer" className="text-2xl text-gray-900" />
+                          <div>
+                            <p className="font-medium text-gray-900">Drucken</p>
+                            <p className="text-sm text-gray-500">Medikamentekarten</p>
                           </div>
                         </button>
                       )}

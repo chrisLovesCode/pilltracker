@@ -28,3 +28,24 @@
 .animate-slideUp {
   animation: slideUp 0.3s ease-out;
 }
+
+/* Print support (Android print preview + web) */
+@media print {
+  body {
+    background: #fff !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  /* Avoid splitting medication cards across pages */
+  .print-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .print-root {
+    min-height: auto !important;
+  }
+}
