@@ -7,7 +7,8 @@ import { Button } from '../components/ui';
 import { 
   debugPendingNotifications, 
   scheduleTestNotification,
-  debugNotificationPermissions 
+  debugNotificationPermissions,
+  cancelAllPendingNotifications,
 } from '../lib/notifications/debug';
 
 export default function NotificationsDebug() {
@@ -56,6 +57,16 @@ export default function NotificationsDebug() {
           data-testid="notifications-debug-permissions"
         >
           🔐 Permissions prüfen
+        </Button>
+
+        <Button
+          onClick={() => runDebugAction(cancelAllPendingNotifications, 'Alle geplanten Benachrichtigungen löschen')}
+          disabled={loading}
+          className="w-full bg-red-600 hover:bg-red-700"
+          data-testid="notifications-debug-cancel-all"
+          aria-label="notifications-debug-cancel-all"
+        >
+          🗑️ Alle geplanten Benachrichtigungen löschen
         </Button>
 
         <Button

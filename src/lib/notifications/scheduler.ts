@@ -16,10 +16,15 @@ function hashToU32(input: string): number {
   return h >>> 0;
 }
 
+function notificationIdBase(medicationId: string): number {
+  // 1..2,000,000
+  return (hashToU32(medicationId) % 2_000_000) + 1;
+}
+
 function notificationIdFor(medicationId: string, index: number): number {
   // Android notification IDs are 32-bit signed ints. Keep well below Int.MAX_VALUE.
   // Reserve 0 for safety.
-  const base = (hashToU32(medicationId) % 2_000_000) + 1; // 1..2,000,000
+  const base = notificationIdBase(medicationId);
   return base * 1000 + index; // <= ~2,000,000,999 (< 2,147,483,647)
 }
 
@@ -91,7 +96,12 @@ export async function scheduleMedicationNotifications(medication: Medication): P
     // First, cancel any existing notifications for this medication
     await cancelMedicationNotifications(medication.id);
 
-    const hasPermission = await checkNotificationPermissions();
+    // Ensure permission is granted. Some devices report `prompt` until requestPermissions
+    // is called via the plugin, even if the OS permission was granted out-of-band.
+    let hasPermission = await checkNotificationPermissions();
+    if (!hasPermission) {
+      hasPermission = await requestNotificationPermissions();
+    }
     if (!hasPermission) {
       console.warn('[Notifications] No permission to schedule notifications');
       return;
@@ -175,17 +185,12 @@ export async function scheduleMedicationNotifications(medication: Medication): P
  */
 export async function cancelMedicationNotifications(medicationId: string): Promise<void> {
   try {
-    const pending = await LocalNotifications.getPending();
-    const medicationNotifications = pending.notifications.filter(
-      n => n.extra?.medicationId === medicationId
-    );
-
-    if (medicationNotifications.length > 0) {
-      await LocalNotifications.cancel({
-        notifications: medicationNotifications,
-      });
-      console.log(`[Notifications] Cancelled ${medicationNotifications.length} notifications for medication ${medicationId}`);
-    }
+    // Don't rely on `extra` being present in getPending() (platform differences).
+    // Cancel a whole reserved ID range for this medication.
+    const base = notificationIdBase(medicationId);
+    const notifications = Array.from({ length: 1000 }, (_, i) => ({ id: base * 1000 + i }));
+    await LocalNotifications.cancel({ notifications: notifications as any });
+    console.log(`[Notifications] Cancelled notifications for medication ${medicationId} (id base=${base})`);
   } catch (error) {
     console.error('[Notifications] Failed to cancel:', error);
   }

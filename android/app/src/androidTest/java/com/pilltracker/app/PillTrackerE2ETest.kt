@@ -18,6 +18,7 @@ import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.equalTo
 import org.hamcrest.TypeSafeMatcher
 import org.json.JSONObject
+import java.util.Calendar
 import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.FixMethodOrder
@@ -45,6 +46,7 @@ class PillTrackerE2ETest {
 
     companion object {
         private const val TEST_MED_NAME = "Test Aspirin"
+        private const val TEST_NOTIF_MED_NAME = "Notif Test Med"
     }
 
     @Before
@@ -69,7 +71,7 @@ class PillTrackerE2ETest {
     private fun dumpLogcatFiltered(): String {
         return try {
             val filtered = device.executeShellCommand(
-                "sh -c \"logcat -d | grep -E 'Capacitor/Console|Database Initialization Failed|no such table|\\\\[DB\\\\]|\\\\[Main\\\\]|AndroidRuntime|CapacitorSQLite|sqlite|SQL|FATAL|ERROR' | tail -n 250\""
+                "sh -c \"logcat -d | grep -E 'Capacitor/Console|\\\\[Notifications\\\\]|\\\\[Debug\\\\]|LocalNotifications|Database Initialization Failed|no such table|\\\\[DB\\\\]|\\\\[Main\\\\]|AndroidRuntime|CapacitorSQLite|sqlite|SQL|FATAL|ERROR' | tail -n 300\""
             ).trim()
             if (filtered.isNotEmpty()) filtered
             else device.executeShellCommand("sh -c \"logcat -d | tail -n 250\"")
@@ -322,6 +324,61 @@ class PillTrackerE2ETest {
             .perform(webKeys(value))
     }
 
+    private fun setInputValueByJs(selector: String, value: String, timeoutMs: Long = 30000) {
+        // Some inputs (notably <input type="time">) can be flaky with webKeys in WebView.
+        // Use JS to set value + dispatch input/change so React picks it up.
+        waitForCss(selector, timeoutMs)
+        val script = """
+            var sel = ${JSONObject.quote(selector)};
+            var v = ${JSONObject.quote(value)};
+            var el = document.querySelector(sel);
+            if (!el) return "NO_ELEMENT";
+            el.focus();
+            var desc = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
+            if (desc && desc.set) {
+              desc.set.call(el, v);
+            } else {
+              el.value = v;
+            }
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            return el.value;
+        """.trimIndent()
+
+        onWebView(withId(webViewId()))
+            .forceJavascriptEnabled()
+            .check(
+                webMatches(
+                    Atoms.script(script, Atoms.castOrDie(String::class.java)),
+                    equalTo(value)
+                )
+            )
+    }
+
+    private fun setCheckboxByJs(selector: String, checked: Boolean, timeoutMs: Long = 30000) {
+        waitForCss(selector, timeoutMs)
+        val script = """
+            var sel = ${JSONObject.quote(selector)};
+            var want = ${if (checked) "true" else "false"};
+            var el = document.querySelector(sel);
+            if (!el) return "NO_ELEMENT";
+            el.focus();
+            el.checked = want;
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            return el.checked ? "true" : "false";
+        """.trimIndent()
+
+        onWebView(withId(webViewId()))
+            .forceJavascriptEnabled()
+            .check(
+                webMatches(
+                    Atoms.script(script, Atoms.castOrDie(String::class.java)),
+                    equalTo(if (checked) "true" else "false")
+                )
+            )
+    }
+
     private fun requireUiReady() {
         // The main UI should always have the action buttons.
         waitForCss("[aria-label='add-medication-button']", 45000)
@@ -352,8 +409,9 @@ class PillTrackerE2ETest {
 
         // Create medication
         clickCss("[aria-label='add-medication-button']")
-        setInputCss("[aria-label='medication-name-input']", TEST_MED_NAME)
-        setInputCss("[aria-label='dosage-amount-input']", "1")
+        setInputValueByJs("[aria-label='medication-name-input']", TEST_MED_NAME)
+        setInputValueByJs("[aria-label='dosage-amount-input']", "1")
+        setCheckboxByJs("[aria-label='notifications-checkbox']", false) // keep test deterministic (no schedules needed here)
         clickCss("[aria-label='save-medication-button']", 45000)
 
         // Verify medication is created by waiting for the track control to appear.
@@ -387,7 +445,67 @@ class PillTrackerE2ETest {
     }
 
     @Test
-    fun test04_notificationsE2E() {
+    fun test04_medicationNotificationsScheduleAndFire() {
+        requireUiReady()
+
+        // Ensure pending notifications are clean to keep assertions deterministic.
+        clickCss("[aria-label='open-notifications-debug']")
+        clickCss("[aria-label='notifications-debug-cancel-all']", 45000)
+        clickCss("[aria-label='notifications-debug-close']")
+
+        // Reset DB data via debug UI (avoid leftover meds + pending schedules).
+        clickCss("[aria-label='open-db-debug']")
+        clickCss("[aria-label='db-init']", 45000)
+        clickCss("[aria-label='db-clear-tables']", 45000)
+        clickCss("[aria-label='db-debug-close']", 45000)
+
+        // Pick a schedule time ~1 minute in the future (HH:mm).
+        val cal = Calendar.getInstance()
+        cal.add(Calendar.MINUTE, 1)
+        val hh = cal.get(Calendar.HOUR_OF_DAY)
+        val mm = cal.get(Calendar.MINUTE)
+        val hhmm = String.format("%02d:%02d", hh, mm)
+
+        // Create medication with notifications enabled and near-future schedule time.
+        clickCss("[aria-label='add-medication-button']")
+        setInputValueByJs("[aria-label='medication-name-input']", TEST_NOTIF_MED_NAME)
+        // Use a unique dosage so we can find it in the delivered notification body.
+        setInputValueByJs("[aria-label='dosage-amount-input']", "777")
+        // Default has notifications enabled and all days selected; just adjust time.
+        setInputValueByJs("[aria-label='schedule-time-0']", hhmm)
+        setCheckboxByJs("[aria-label='notifications-checkbox']", true)
+        clickCss("[aria-label='save-medication-button']", 45000)
+
+        // Verify medication visible (track control present).
+        waitForCss("[aria-label^='track-medication-']", 45000)
+
+        // Verify the app actually scheduled pending notifications for this medication.
+        clickCss("[aria-label='open-notifications-debug']")
+        clickCss("[aria-label='notifications-debug-pending']", 45000)
+        waitForCss("[aria-label='notifications-debug-output']", 45000)
+        // Pending output should show the configured time (HH:mm).
+        waitForCssTextContains("[aria-label='notifications-debug-output']", hhmm, 45000)
+        clickCss("[aria-label='notifications-debug-close']")
+
+        // Background the app so notifications are visible in the shade.
+        device.pressHome()
+
+        // Wait for the actual reminder notification to show up.
+        device.openNotification()
+        val notif = device.wait(Until.findObject(By.textContains("777")), 140000)
+        if (notif == null) {
+            println("=== LOGCAT (medication notification not delivered) ===")
+            println(dumpLogcatFiltered())
+            println("=== /LOGCAT ===")
+            fail("Medication notification was not delivered within timeout (scheduled for ~$hhmm)")
+        }
+
+        // Close shade and return.
+        device.pressBack()
+    }
+
+    @Test
+    fun test05_notificationsE2E() {
         requireUiReady()
 
         // Open notifications debug.

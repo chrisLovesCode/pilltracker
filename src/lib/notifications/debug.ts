@@ -6,6 +6,22 @@
 
 import { LocalNotifications } from '@capacitor/local-notifications';
 
+export async function cancelAllPendingNotifications(): Promise<void> {
+  try {
+    const pending = await LocalNotifications.getPending();
+    const ids = (pending.notifications || []).map((n: any) => ({ id: n.id }));
+    if (ids.length === 0) {
+      console.log('✅ No pending notifications to cancel.');
+      return;
+    }
+
+    await LocalNotifications.cancel({ notifications: ids as any });
+    console.log(`✅ Cancelled ${ids.length} pending notifications.`);
+  } catch (error) {
+    console.error('[Debug] Failed to cancel pending notifications:', error);
+  }
+}
+
 /**
  * Get all pending notifications and log them
  */
@@ -28,8 +44,13 @@ export async function debugPendingNotifications(): Promise<void> {
     const byMedication: { [key: string]: any[] } = {};
     
     for (const notification of pending.notifications) {
-      const medId = notification.extra?.medicationId || 'unknown';
-      const medName = notification.extra?.medicationName || 'Unknown';
+      const title = notification.title || '';
+      const medId = notification.extra?.medicationId || `id:${notification.id}`;
+      // Some platforms don't return `extra` for pending notifications. Fall back to parsing the title.
+      const medName =
+        notification.extra?.medicationName ||
+        (typeof title === 'string' ? title.replace(/^💊\s*/, '').trim() : '') ||
+        'Unknown';
       
       if (!byMedication[medId]) {
         byMedication[medId] = [];
@@ -37,7 +58,7 @@ export async function debugPendingNotifications(): Promise<void> {
       
       byMedication[medId].push({
         id: notification.id,
-        title: notification.title,
+        title: title,
         schedule: notification.schedule,
         medName: medName,
       });
@@ -49,6 +70,9 @@ export async function debugPendingNotifications(): Promise<void> {
       console.log('─────────────────────────────────────');
       
       for (const notif of notifications.slice(0, 5)) { // Show first 5
+        if (notif.title) {
+          console.log(`  🆔 ${notif.id} ${notif.title}`);
+        }
         const schedule = notif.schedule;
         if (schedule?.at) {
           const date = new Date(schedule.at);
