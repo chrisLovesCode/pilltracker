@@ -25,6 +25,8 @@ echo -e "${BLUE}========================================${NC}\n"
 echo -e "${YELLOW}[1/5] Setting up Java environment...${NC}"
 export PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH"
 export JAVA_HOME="/opt/homebrew/opt/openjdk@21"
+export ANDROID_HOME="$HOME/Library/Android/sdk"
+export PATH="$PATH:$ANDROID_HOME/platform-tools"
 java -version
 echo -e "${GREEN}✓ Java configured${NC}\n"
 
@@ -44,6 +46,9 @@ cd android
 ./gradlew installDebug
 cd ..
 echo -e "${GREEN}✓ APK installed on device/emulator${NC}\n"
+
+# Best-effort: pre-grant runtime permission for notifications (Android 13+) to avoid blocking dialogs.
+adb shell pm grant com.pilltracker.app android.permission.POST_NOTIFICATIONS 2>/dev/null || true
 
 # Step 5: Success message
 echo -e "${GREEN}========================================${NC}"

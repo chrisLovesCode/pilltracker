@@ -5,8 +5,14 @@
 
 import { Capacitor } from '@capacitor/core';
 import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacitor-community/sqlite';
+import schemaSql from './schema.sql?raw';
 
-const DB_NAME = 'pilltracker.db';
+// NOTE: capacitor-community/sqlite expects the database name WITHOUT ".db"
+// (it manages the file extension internally).
+const DB_NAME = 'pilltracker';
+// Alpha: schema changes are allowed to reset the DB completely.
+// Bump this number whenever `schema.sql` changes.
+const SCHEMA_VERSION = 20260210;
 
 let sqliteConnection: SQLiteConnection | null = null;
 let db: SQLiteDBConnection | null = null;
@@ -50,8 +56,8 @@ export async function initDb(): Promise<void> {
     await db.open();
     console.log('[DB] ✅ SQLite connection opened');
 
-    // Run migrations
-    await runMigrations();
+    // Alpha schema management: ensure schema matches and reset if needed.
+    await ensureSchema();
 
     isInitialized = true;
     console.log('[DB] ✅ Database initialized successfully');
@@ -101,93 +107,65 @@ export async function closeDb(): Promise<void> {
   console.log('[DB] Connection closed');
 }
 
-/**
- * Run SQL migrations
- */
-async function runMigrations(): Promise<void> {
+async function ensureSchema(): Promise<void> {
   if (!db) throw new Error('Database not initialized');
 
-  console.log('[Migrations] Starting...');
+  const currentVersion = await getUserVersion(db);
+  if (currentVersion !== SCHEMA_VERSION) {
+    console.warn(`[DB] Schema version mismatch (have=${currentVersion}, want=${SCHEMA_VERSION}). Resetting DB (alpha).`);
+    await resetDatabase();
 
-  // Create migrations tracking table
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS __migrations (
-      id         INTEGER PRIMARY KEY AUTOINCREMENT,
-      name       TEXT NOT NULL UNIQUE,
-      applied_at TEXT NOT NULL
-    )
-  `);
-
-  // Load migration files
-  const migrations = import.meta.glob<string>('/src/db/migrations/*.sql', {
-    query: '?raw',
-    import: 'default',
-  });
-
-  const migrationFiles = Object.keys(migrations).sort();
-  console.log(`[Migrations] Found ${migrationFiles.length} migration file(s)`);
-
-  for (const path of migrationFiles) {
-    const name = path.split('/').pop()!.replace('.sql', '');
-    
-    // Check if already applied
-    const result = await db.query(`
-      SELECT name 
-      FROM __migrations 
-      WHERE name = ?
-    `, [name]);
-    
-    if (result.values && result.values.length > 0) {
-      continue; // Already applied
+    // Re-open fresh DB after delete.
+    if (!sqliteConnection) {
+      sqliteConnection = new SQLiteConnection(CapacitorSQLite);
     }
-
-    console.log(`[Migrations] Applying ${name}...`);
-    
-    const sql = await migrations[path]();
-
-    // Migration files can contain `--> statement-breakpoint` markers.
-    // These are NOT valid SQL and must never be sent to SQLite.
-    const statements = splitSqlStatements(sql);
-
-    // Execute each statement
-    for (const statement of statements) {
-      if (statement.trim()) {
-        try {
-          await db.execute(statement);
-        } catch (error: any) {
-          // If a previous app version crashed mid-migration, some CREATE statements may have
-          // succeeded without the migration being recorded. To recover on next launch, ignore
-          // "already exists" errors for idempotent CREATE TABLE/INDEX statements.
-          const msg = (error?.message ?? String(error)) as string;
-          if (isAlreadyExistsError(msg) && isIdempotentCreate(statement)) {
-            console.warn('[Migrations] ⚠️ Ignoring already-exists error for statement:', statement);
-            continue;
-          }
-          throw error;
-        }
-      }
-    }
-
-    // Record migration
-    const appliedAt = new Date().toISOString();
-    await db.run(`
-      INSERT INTO __migrations (name, applied_at) 
-      VALUES (?, ?)
-    `, [name, appliedAt]);
-
-    console.log(`[Migrations] ✅ Applied ${name}`);
+    db = await sqliteConnection.createConnection(DB_NAME, false, 'no-encryption', 1, false);
+    await db.open();
+    console.log('[DB] ✅ SQLite connection opened (after reset)');
   }
 
-  console.log('[Migrations] ✅ All migrations complete');
+  // Apply baseline schema (idempotent thanks to IF NOT EXISTS).
+  const statements = splitSqlStatements(schemaSql);
+  for (const statement of statements) {
+    if (statement.trim()) {
+      await db.execute(statement);
+    }
+  }
+
+  await db.execute(`PRAGMA user_version = ${SCHEMA_VERSION};`);
 }
 
-function isAlreadyExistsError(message: string): boolean {
-  return /already exists/i.test(message);
+async function getUserVersion(conn: SQLiteDBConnection): Promise<number> {
+  try {
+    const res = await conn.query('PRAGMA user_version;');
+    const v = (res.values?.[0] as any)?.user_version;
+    return typeof v === 'number' ? v : 0;
+  } catch {
+    return 0;
+  }
 }
 
-function isIdempotentCreate(statement: string): boolean {
-  const s = statement.trim().toUpperCase();
-  return s.startsWith('CREATE TABLE') || s.startsWith('CREATE INDEX') || s.startsWith('CREATE UNIQUE INDEX');
+async function resetDatabase(): Promise<void> {
+  // Best-effort cleanup: close connections then delete DB file.
+  try {
+    if (db) await db.close();
+  } catch {
+    // ignore
+  }
+  try {
+    if (sqliteConnection) await sqliteConnection.closeConnection(DB_NAME, false);
+  } catch {
+    // ignore
+  }
+  db = null;
+  isInitialized = false;
+
+  try {
+    await CapacitorSQLite.deleteDatabase({ database: DB_NAME, readonly: false });
+  } catch (e) {
+    // ignore "does not exist" and similar errors
+    console.warn('[DB] deleteDatabase failed (ignored):', e);
+  }
 }
 
 /**

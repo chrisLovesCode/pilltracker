@@ -102,14 +102,18 @@ export default function DbDebug() {
     await handleAction(async () => {
       const db = getDatabase();
       
-      const migrations = await db.query(`
-        SELECT * 
-        FROM __migrations 
-        ORDER BY applied_at DESC
-      `);
-      
-      setStatus('✅ Migrations retrieved');
-      setResult('Migrations (' + (migrations.values?.length || 0) + '):\n' + JSON.stringify(migrations.values || [], null, 2));
+      const version = await db.query('PRAGMA user_version;');
+      const tables = await db.query(
+        "SELECT name FROM sqlite_master WHERE type IN ('table','view') ORDER BY name"
+      );
+
+      setStatus('✅ DB info retrieved');
+      setResult(
+        'user_version:\n' +
+          JSON.stringify(version.values || [], null, 2) +
+          '\n\nTables:\n' +
+          JSON.stringify(tables.values || [], null, 2)
+      );
     });
   };
 
@@ -122,7 +126,7 @@ export default function DbDebug() {
         <button onClick={handleInsertSample} className="px-4 py-2 bg-green-500 text-white rounded mr-2" aria-label="db-insert-sample">Insert Sample</button>
         <button onClick={handleListRows} className="px-4 py-2 bg-purple-500 text-white rounded mr-2" aria-label="db-list-rows">List Rows</button>
         <button onClick={handleClearTables} className="px-4 py-2 bg-red-500 text-white rounded mr-2" aria-label="db-clear-tables">Clear Tables</button>
-        <button onClick={handleShowMigrations} className="px-4 py-2 bg-gray-500 text-white rounded" aria-label="db-show-migrations">Show Migrations</button>
+        <button onClick={handleShowMigrations} className="px-4 py-2 bg-gray-500 text-white rounded" aria-label="db-show-migrations">DB Info</button>
       </div>
 
       {status && (

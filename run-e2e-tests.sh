@@ -49,6 +49,12 @@ if [ "$DEVICE_COUNT" -eq 0 ]; then
 fi
 echo -e "${GREEN}✓ Emulator verbunden ($DEVICE_COUNT device)${NC}\n"
 
+# Best-effort: pre-grant runtime permissions to avoid blocking dialogs (Android 13+).
+DEVICE=$(adb devices | awk '/emulator|device/{print $1; exit}')
+if [ -n "$DEVICE" ]; then
+    adb -s "$DEVICE" shell pm grant com.pilltracker.app android.permission.POST_NOTIFICATIONS 2>/dev/null || true
+fi
+
 if [ "$SKIP_BUILD" = false ]; then
     # Step 3: Build Web App
     echo -e "${YELLOW}[3/6] Building web app...${NC}"
@@ -74,7 +80,28 @@ fi
 # Step 6: Run E2E Tests
 echo -e "${YELLOW}[6/6] Running E2E CRUD tests...${NC}"
 cd android
-./gradlew :app:connectedDebugAndroidTest --quiet 2>&1 | grep -E "(Starting|Tests|FAILED|PASSED|completed)" || true
+
+# Preflight: run only the DB/UI readiness test first and abort early on failure.
+echo -e "${YELLOW}Preflight: DB init + UI ready...${NC}"
+./gradlew :app:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.pilltracker.app.PillTrackerE2ETest#test00_preflightDbInit \
+  --quiet 2>&1 | grep -E "(Starting|Tests|FAILED|PASSED|completed|FAILURES|Exception|AssertionError)" || true
+PREFLIGHT_EXIT_CODE=${PIPESTATUS[0]}
+
+if [ $PREFLIGHT_EXIT_CODE -ne 0 ]; then
+    cd ..
+    echo ""
+    echo -e "${RED}========================================${NC}"
+    echo -e "${RED}  ✗ Preflight FAILED (DB/UI not ready)${NC}"
+    echo -e "${RED}========================================${NC}"
+    echo -e "\n${BLUE}Test Report:${NC}"
+    echo -e "${BLUE}  file://$(pwd)/android/app/build/reports/androidTests/connected/debug/index.html${NC}\n"
+    exit $PREFLIGHT_EXIT_CODE
+fi
+
+echo -e "${GREEN}✓ Preflight PASSED${NC}\n"
+
+./gradlew :app:connectedDebugAndroidTest --quiet 2>&1 | grep -E "(Starting|Tests|FAILED|PASSED|completed|FAILURES|Exception|AssertionError)" || true
 TEST_EXIT_CODE=${PIPESTATUS[0]}
 cd ..
 
