@@ -53,10 +53,30 @@ class PillTrackerE2ETest {
     fun setUp() {
         device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         device.waitForIdle(3000)
+        ensureNotificationPermissionGranted()
         // Ensure the app process exists (ActivityScenario should do this, but keep it deterministic).
         device.wait(Until.findObject(By.pkg("com.pilltracker.app")), 10000)
         device.waitForIdle(1500)
         handleRuntimePermissions(3000)
+    }
+
+    private fun ensureNotificationPermissionGranted() {
+        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
+        val pkg = ctx.packageName
+
+        // Android 13+ ties app notifications to POST_NOTIFICATIONS.
+        // If a previous run clicked "Don't allow", the system often won't show the prompt again,
+        // so requestPermissions() returns "denied" forever. Fix this at the source.
+        try {
+            device.executeShellCommand("pm grant $pkg android.permission.POST_NOTIFICATIONS")
+        } catch (_: Throwable) {
+            // Ignore on older Android versions or if the shell denies.
+        }
+        try {
+            device.executeShellCommand("cmd appops set $pkg POST_NOTIFICATION allow")
+        } catch (_: Throwable) {
+            // Best-effort; not all Android builds expose this.
+        }
     }
 
     private fun webViewId(): Int {
@@ -206,26 +226,6 @@ class PillTrackerE2ETest {
             if (ok != null) {
                 try {
                     ok.click()
-                    device.waitForIdle(1500)
-                } catch (_: Throwable) {
-                    device.waitForIdle(250)
-                }
-                continue
-            }
-
-            // Last resort: deny to unblock tests.
-            val deny =
-                device.findObject(By.res("com.android.permissioncontroller:id/permission_deny_button"))
-                    ?: device.findObject(By.res("com.android.permissioncontroller:id/permission_deny_and_dont_ask_again_button"))
-                    ?: device.findObject(By.res("com.google.android.permissioncontroller:id/permission_deny_button"))
-                    ?: device.findObject(By.res("com.google.android.permissioncontroller:id/permission_deny_and_dont_ask_again_button"))
-                    ?: device.findObject(By.textContains("Don't allow"))
-                    ?: device.findObject(By.textContains("DON'T ALLOW"))
-                    ?: device.findObject(By.textContains("Nicht zulassen"))
-                    ?: device.findObject(By.textContains("NICHT ZULASSEN"))
-            if (deny != null) {
-                try {
-                    deny.click()
                     device.waitForIdle(1500)
                 } catch (_: Throwable) {
                     device.waitForIdle(250)
