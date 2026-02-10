@@ -20,8 +20,7 @@ export default defineConfig({
     port: 5175,
     strictPort: false,
     fs: {
-      // Exclude playwright-report from scanning
-      deny: ['**/playwright-report/**'],
+      deny: [],
     },
   },
   test: {

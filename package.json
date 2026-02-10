@@ -11,9 +11,6 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:headed": "playwright test --headed",
     "capacitor:sync": "npx cap sync",
     "capacitor:ios": "npx cap open ios",
     "capacitor:android": "npx cap open android"
@@ -39,7 +36,6 @@
   },
   "devDependencies": {
     "@capacitor/cli": "^8.0.2",
-    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.1.18",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",

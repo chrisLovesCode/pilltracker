@@ -1,154 +1,38 @@
 # PillTracker
 
-Eine moderne Medikamenten-Tracking-App gebaut mit React, Capacitor, Prisma und SQLite.
+Offline-first Medikamenten-Tracking-App (React + Capacitor + native SQLite).
 
-## 🚀 Features
+## Stack
 
-- ⚛️ **React 18.3** - Moderne React-Entwicklung
-- 🎨 **TailwindCSS 3.4** - Utility-First CSS Framework
-- 🎭 **Iconify React** - Zugriff auf tausende Icons
-- 📱 **Capacitor 6.1** - Native Mobile Apps (iOS/Android)
-- 🗄️ **Prisma 5.22** - Type-safe ORM
-- 💾 **SQLite** - Lokale Datenbank
-- 🐳 **Docker** - Containerisierte Entwicklung und Deployment
-- ⚡ **Vite 5.4** - Schneller Build-Tool
+- React + Vite + TypeScript
+- Capacitor (Android/iOS WebView Shell)
+- Native SQLite via `@capacitor-community/sqlite`
+- Local Notifications via `@capacitor/local-notifications`
 
-## 📋 Voraussetzungen
+## Entwicklung (Web)
 
-- Docker & Docker Compose
-- Node.js 20+ (für lokale Entwicklung ohne Docker)
-- npm oder yarn
-
-## 🛠️ Installation & Setup
-
-### Mit Docker (Empfohlen)
-
-1. **Development-Umgebung starten:**
-```bash
-docker-compose up dev
-```
-
-Die App ist dann verfügbar unter: http://localhost:5173
-
-2. **Production-Build:**
-```bash
-docker-compose up prod
-```
-
-Die App ist dann verfügbar unter: http://localhost:4173
-
-### Lokale Entwicklung (ohne Docker)
-
-1. **Dependencies installieren:**
 ```bash
 npm install
-```
-
-2. **Prisma initialisieren:**
-```bash
-npx prisma generate
-npx prisma migrate dev --name init
-```
-
-3. **Development-Server starten:**
-```bash
 npm run dev
 ```
 
-## 📱 Capacitor Setup
+Hinweis: Die SQLite DB ist nur auf nativen Plattformen verfuegbar (Android/iOS).
 
-### iOS/Android Plattformen hinzufügen:
-
-```bash
-# Build erstellen
-npm run build
-
-# iOS hinzufügen
-npx cap add ios
-
-# Android hinzufügen
-npx cap add android
-
-# Assets synchronisieren
-npx cap sync
-```
-
-### App auf Gerät/Simulator ausführen:
+## Android (Build/Deploy)
 
 ```bash
-# iOS
-npx cap open ios
-
-# Android
-npx cap open android
+./run-android.sh
 ```
 
-## 🗄️ Datenbank
+## Android E2E (Android Studio / Console) + Logs
 
-Das Projekt nutzt SQLite mit Prisma als ORM. Das Schema befindet sich in `prisma/schema.prisma`.
+Ziel: App bedienen ohne manuelles rumklicken und dabei SQL/Crash-Fehler sofort sehen.
 
-### Prisma Befehle:
+1. Emulator starten (am einfachsten ueber Android Studio: Device Manager).
+2. App deployen: `./run-android.sh`
+3. E2E laufen lassen: `./run-e2e-tests.sh`
+4. Live-Logs: `./watch-logs.sh`
+5. Report (HTML): `android/app/build/reports/androidTests/connected/debug/index.html`
 
-```bash
-# Prisma Client generieren
-npx prisma generate
-
-# Migration erstellen
-npx prisma migrate dev --name migration_name
-
-# Datenbank zurücksetzen
-npx prisma migrate reset
-
-# Prisma Studio öffnen (GUI für Datenbank)
-npx prisma studio
-```
-
-## 📂 Projektstruktur
-
-```
-pilltracker/
-├── prisma/
-│   └── schema.prisma          # Datenbank-Schema
-├── src/
-│   ├── lib/
-│   │   └── prisma.ts          # Prisma Client Setup
-│   ├── App.tsx                # Haupt-App-Komponente
-│   ├── main.tsx               # App-Einstiegspunkt
-│   └── index.css              # TailwindCSS Imports
-├── Dockerfile                 # Production Docker Image
-├── Dockerfile.dev             # Development Docker Image
-├── docker-compose.yml         # Docker Compose Config
-├── capacitor.config.json      # Capacitor Konfiguration
-├── vite.config.ts             # Vite Konfiguration
-├── tailwind.config.js         # TailwindCSS Konfiguration
-└── package.json               # Dependencies
-```
-
-## 🔧 Verfügbare Scripts
-
-```bash
-npm run dev          # Development-Server starten
-npm run build        # Production-Build erstellen
-npm run preview      # Production-Build lokal testen
-npm run lint         # Code-Linting
-```
-
-## 🌟 Best Practices 2025/2026
-
-- **Prisma**: Nutzt die neueste Version mit optimiertem SQLite-Support
-- **React**: Funktionale Komponenten mit Hooks
-- **TypeScript**: Vollständige Type-Safety
-- **Capacitor**: Neueste Version für beste Mobile-Performance
-- **Docker**: Multi-Stage Builds für optimierte Images
-- **TailwindCSS**: Utility-First Approach für schnelle UI-Entwicklung
-
-## 📝 Nächste Schritte
-
-1. Passe das Datenbank-Schema in `prisma/schema.prisma` an deine Bedürfnisse an
-2. Entwickle die App-Komponenten in `src/`
-3. Füge native Funktionen über Capacitor Plugins hinzu
-4. Baue und teste die App auf iOS/Android
-
-## 📄 Lizenz
-
-MIT
+Die Instrumentation-Tests sind hier:
+`android/app/src/androidTest/java/com/pilltracker/app/PillTrackerE2ETest.kt`

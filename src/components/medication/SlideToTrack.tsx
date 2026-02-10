@@ -3,7 +3,6 @@
  * 
  * Swipeable button for tracking medication intake.
  * Requires deliberate slide action to prevent accidental tracking.
- * Playwright-compatible with data-testid and programmatic trigger.
  */
 import { Icon } from '@iconify/react';
 import { useState, useRef, useEffect } from 'react';
