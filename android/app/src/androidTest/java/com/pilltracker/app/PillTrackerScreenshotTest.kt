@@ -278,6 +278,31 @@ class PillTrackerScreenshotTest {
             waitForCss("[aria-label='add-medication-button']", device, 60000)
             waitForCss("[aria-label='add-group-button']", device, 60000)
 
+            // Force English UI for screenshots (i18next browser language detector caches in localStorage).
+            val langResult = captureStringFromScript(
+                """
+                try {
+                  var want = "en";
+                  var cur = (localStorage.getItem("i18nextLng") || "");
+                  if (cur.indexOf(want) === 0) return "already";
+                  localStorage.setItem("i18nextLng", want);
+                  setTimeout(function(){ location.reload(); }, 10);
+                  return "reloading";
+                } catch (e) {
+                  return "error";
+                }
+                """.trimIndent(),
+                device,
+                15000
+            )
+            if (langResult.trim() == "reloading") {
+                // Give the reload some time to start.
+                Thread.sleep(1500)
+                handleRuntimePermissions(device, 8000)
+                waitForCss("[aria-label='add-medication-button']", device, 60000)
+                waitForCss("[aria-label='add-group-button']", device, 60000)
+            }
+
             // Resolve WebView location on screen for swipe gestures.
             val webViewLoc = IntArray(2)
             scenario.onActivity { activity ->
@@ -291,10 +316,10 @@ class PillTrackerScreenshotTest {
             clickCss("[aria-label='db-clear-tables']", device, 60000)
             clickCss("[aria-label='db-debug-close']", device, 60000)
 
-            // Create one group ("Morgenroutine").
+            // Create one group.
             clickCss("[aria-label='add-group-button']", device)
-            setInputValueByJs("[aria-label='group-name-input']", "Morgenroutine", device)
-            setInputValueByJs("[aria-label='group-notes-textarea']", "Basis-Meds (Beispiel)", device)
+            setInputValueByJs("[aria-label='group-name-input']", "Morning Routine", device)
+            setInputValueByJs("[aria-label='group-notes-textarea']", "Base meds (example)", device)
             clickCss("[aria-label='save-group-button']", device, 60000)
 
             val gid = firstGroupId(device, 45000)
@@ -318,7 +343,7 @@ class PillTrackerScreenshotTest {
             createMed("Metformin", "500", "mg", "08:00", gid)
             createMed("Ibuprofen", "400", "mg", "12:00", null)
 
-            // Track one intake so "zuletzt eingenommen" is visible.
+            // Track one intake so "Last taken" is visible.
             val metId = medicationIdByName("Metformin", device, 45000)
             swipeOnWebView(
                 startCss = "[aria-label='track-medication-${metId}-handle']",
