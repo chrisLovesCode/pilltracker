@@ -1,0 +1,96 @@
+{
+  "app": {
+    "title": "PillTracker",
+    "subtitle": "Your Personal Medication Tracking App"
+  },
+  "common": {
+    "loading": "Loading...",
+    "subtitle": "Your Personal Medication Tracking App"
+  },
+  "navigation": {
+    "medications": "Medications",
+    "groups": "Groups",
+    "settings": "Settings"
+  },
+  "medications": {
+    "title": "My Medications",
+    "addNew": "Add Medication",
+    "addFirst": "Add your first medication",
+    "empty": "No medications yet",
+    "emptyDescription": "Add your first medication!",
+    "name": "Medication Name",
+    "dosage": "Dosage",
+    "unit": "Unit",
+    "notes": "Notes",
+    "schedule": "Schedule",
+    "interval": "Interval",
+    "times": "Times",
+    "enableNotifications": "Enable Notifications",
+    "lastTaken": "Last taken",
+    "neverTaken": "Not taken yet",
+    "trackIntake": "Track Intake"
+  },
+  "groups": {
+    "title": "Medication Groups",
+    "addNew": "Add Group",
+    "empty": "No groups yet. Create a group to organize medications!",
+    "name": "Group Name",
+    "medications": "Medications",
+    "trackAll": "Track All",
+    "notes": "Notes",
+    "group": "Group",
+    "noGroup": "No Group",
+    "addMedicationToGroup": "Add to Group",
+    "noMedications": "No medications in this group"
+  },
+  "intervals": {
+    "DAILY": "Daily",
+    "WEEKLY": "Weekly"
+  },
+  "days": {
+    "short": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
+    "everyDay": "Every Day"
+  },
+  "units": {
+    "mg": "mg",
+    "g": "g",
+    "ml": "ml",
+    "tablets": "Tablets"
+  },
+  "actions": {
+    "add": "Add",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "slideToTrack": "Slide to Track",
+    "exportPDF": "Export PDF",
+    "exportAllPDF": "Export All as PDF",
+    "removeFromGroup": "Remove from Group",
+    "menu": "Menu",
+    "changeLanguage": "Change Language"
+  },
+  "confirmations": {
+    "deleteMedication": "Are you sure you want to delete this medication?",
+    "deleteGroup": "Are you sure you want to delete this group?"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "notifications": "Notifications"
+  },
+  "pdf": {
+    "title": "Medication Card",
+    "generatedOn": "Generated on"
+  }
+}

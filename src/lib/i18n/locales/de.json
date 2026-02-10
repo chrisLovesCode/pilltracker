@@ -1,0 +1,96 @@
+{
+  "app": {
+    "title": "PillTracker",
+    "subtitle": "Deine persönliche Medikamenten-Tracking App"
+  },
+  "common": {
+    "loading": "Lädt...",
+    "subtitle": "Deine persönliche Medikamenten-Tracking App"
+  },
+  "navigation": {
+    "medications": "Medikamente",
+    "groups": "Gruppen",
+    "settings": "Einstellungen"
+  },
+  "medications": {
+    "title": "Meine Medikamente",
+    "addNew": "Medikament hinzufügen",
+    "addFirst": "Füge dein erstes Medikament hinzu",
+    "empty": "Noch keine Medikamente",
+    "emptyDescription": "Füge dein erstes Medikament hinzu!",
+    "name": "Medikamentenname",
+    "dosage": "Dosierung",
+    "unit": "Einheit",
+    "notes": "Notizen",
+    "schedule": "Zeitplan",
+    "interval": "Intervall",
+    "times": "Uhrzeiten",
+    "enableNotifications": "Benachrichtigungen aktivieren",
+    "lastTaken": "Zuletzt eingenommen",
+    "neverTaken": "Noch nicht eingenommen",
+    "trackIntake": "Einnahme tracken"
+  },
+  "groups": {
+    "title": "Medikamentengruppen",
+    "addNew": "Gruppe hinzufügen",
+    "empty": "Noch keine Gruppen. Erstelle eine Gruppe um Medikamente zu organisieren!",
+    "name": "Gruppenname",
+    "medications": "Medikamente",
+    "trackAll": "Alle tracken",
+    "notes": "Notizen",
+    "group": "Gruppe",
+    "noGroup": "Keine Gruppe",
+    "addMedicationToGroup": "Zur Gruppe hinzufügen",
+    "noMedications": "Keine Medikamente in dieser Gruppe"
+  },
+  "intervals": {
+    "DAILY": "Täglich",
+    "WEEKLY": "Wöchentlich"
+  },
+  "days": {
+    "short": {
+      "mon": "Mo",
+      "tue": "Di",
+      "wed": "Mi",
+      "thu": "Do",
+      "fri": "Fr",
+      "sat": "Sa",
+      "sun": "So"
+    },
+    "everyDay": "Jeden Tag"
+  },
+  "units": {
+    "mg": "mg",
+    "g": "g",
+    "ml": "ml",
+    "tablets": "Tabletten"
+  },
+  "actions": {
+    "add": "Hinzufügen",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "save": "Speichern",
+    "saving": "Speichern...",
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
+    "slideToTrack": "Zum Tracken wischen",
+    "exportPDF": "PDF exportieren",
+    "exportAllPDF": "Alle als PDF exportieren",
+    "removeFromGroup": "Aus Gruppe entfernen",
+    "menu": "Menü",
+    "changeLanguage": "Sprache wechseln"
+  },
+  "confirmations": {
+    "deleteMedication": "Möchtest du dieses Medikament wirklich löschen?",
+    "deleteGroup": "Möchtest du diese Gruppe wirklich löschen?"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "language": "Sprache",
+    "notifications": "Benachrichtigungen"
+  },
+  "pdf": {
+    "title": "Medikamentenkarte",
+    "generatedOn": "Erstellt am"
+  }
+}

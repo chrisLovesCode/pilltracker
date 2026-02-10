@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  # Development service
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5174:5174"
+      - "3002:3002"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./prisma:/app/prisma
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=file:./dev.db
+      - VITE_API_URL=http://localhost:3002
+    command: sh -c "npx prisma migrate dev --name init && npm run dev:all"
+    stdin_open: true
+    tty: true
+
+  # Production service
+  prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "4174:4174"
+      - "3002:3002"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:./prod.db
+      - VITE_API_URL=http://localhost:3002
+    volumes:
+      - ./prisma:/app/prisma
+    command: sh -c "npx prisma migrate deploy && npm run preview -- --host 0.0.0.0 --port 4174"

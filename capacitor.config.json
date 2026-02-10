@@ -1,0 +1,14 @@
+{
+  "appId": "com.pilltracker.app",
+  "appName": "PillTracker",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "CapacitorSQLite": {
+      "iosDatabaseLocation": "Library/CapacitorDatabase",
+      "androidDatabaseLocation": "default"
+    }
+  }
+}
