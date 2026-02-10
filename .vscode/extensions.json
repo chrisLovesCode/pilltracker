@@ -1,8 +1,6 @@
 {
   "recommendations": [
     "dbaeumer.vscode-eslint",
-    "bradlc.vscode-tailwindcss",
-    "prisma.prisma",
-    "ms-azuretools.vscode-docker"
+    "bradlc.vscode-tailwindcss"
   ]
 }
