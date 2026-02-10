@@ -34,6 +34,19 @@ export async function initDb(): Promise<void> {
   try {
     console.log('[DB] Initializing SQLite...');
 
+    const pluginAvailable = Capacitor.isPluginAvailable?.('CapacitorSQLite') ?? false;
+    console.log('[DB] CapacitorSQLite plugin available:', pluginAvailable);
+    if (!pluginAvailable) {
+      throw new Error('[DB] CapacitorSQLite plugin not registered (isPluginAvailable=false)');
+    }
+    // Fail fast with the plugin's own load message (if native init failed on a real device).
+    try {
+      await CapacitorSQLite.echo({ value: 'db-init' });
+      console.log('[DB] ✅ CapacitorSQLite echo ok');
+    } catch (e) {
+      throw new Error(`[DB] CapacitorSQLite echo failed: ${formatUnknownError(e)}`);
+    }
+
     // Create SQLite connection
     sqliteConnection = new SQLiteConnection(CapacitorSQLite);
     
@@ -276,4 +289,15 @@ function splitSqlStatements(sql: string): string[] {
   if (tail) out.push(tail);
 
   return out;
+}
+
+function formatUnknownError(e: unknown): string {
+  if (e instanceof Error) {
+    return `${e.name}: ${e.message}`;
+  }
+  try {
+    return JSON.stringify(e);
+  } catch {
+    return String(e);
+  }
 }

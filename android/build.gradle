@@ -28,6 +28,10 @@ allprojects {
             force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'
             force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'
             force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'
+            // Some real devices (notably newer Pixels) can be picky about native lib
+            // compatibility/alignment. Stay on the latest SQLCipher which includes
+            // fixes for newer Android runtimes.
+            force 'net.zetetic:sqlcipher-android:4.13.0'
         }
     }
 }

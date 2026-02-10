@@ -9,11 +9,14 @@ echo "📱 Watching PillTracker Android logs..."
 echo "Press Ctrl+C to stop"
 echo "========================================"
 
-# Get device ID
-DEVICE=$(adb devices | grep "emulator" | awk '{print $1}')
+# Prefer an emulator, but fall back to the first connected physical device.
+DEVICE=$(adb devices | awk '/emulator-/{print $1; exit}')
+if [ -z "$DEVICE" ]; then
+  DEVICE=$(adb devices | awk 'NR>1 && $2=="device" {print $1; exit}')
+fi
 
 if [ -z "$DEVICE" ]; then
-  echo "❌ No emulator running!"
+  echo "❌ No Android device/emulator connected!"
   exit 1
 fi
 
@@ -25,6 +28,7 @@ adb -s "$DEVICE" logcat -c
 adb -s "$DEVICE" logcat \
   -s "chromium:I" \
   -s "CapacitorSQLite:D" \
+  -s "CapacitorSQLitePlugin:E" \
   -s "AndroidRuntime:E" \
   | grep --line-buffered -E "\[DB\]|\[Migrations\]|PillTracker|FATAL|ERROR|capacitor" \
   | while read -r line; do

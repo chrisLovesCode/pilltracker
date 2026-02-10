@@ -25,6 +25,12 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    packagingOptions {
+        jniLibs {
+            // Ensures native libs are extracted on install (more compatible on some real devices).
+            useLegacyPackaging true
+        }
+    }
     buildTypes {
         release {
             // Alpha/testing: sign release APKs with the debug key so they are installable when downloaded
