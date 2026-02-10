@@ -53,6 +53,7 @@ export default function NotificationsDebug() {
           onClick={() => runDebugAction(debugNotificationPermissions, 'Permissions prüfen')}
           disabled={loading}
           className="w-full"
+          data-testid="notifications-debug-permissions"
         >
           🔐 Permissions prüfen
         </Button>
@@ -61,6 +62,7 @@ export default function NotificationsDebug() {
           onClick={() => runDebugAction(debugPendingNotifications, 'Geplante Benachrichtigungen anzeigen')}
           disabled={loading}
           className="w-full"
+          data-testid="notifications-debug-pending"
         >
           📋 Geplante Benachrichtigungen
         </Button>
@@ -69,13 +71,18 @@ export default function NotificationsDebug() {
           onClick={() => runDebugAction(scheduleTestNotification, 'Test-Benachrichtigung senden')}
           disabled={loading}
           className="w-full bg-green-600 hover:bg-green-700"
+          data-testid="notifications-debug-test"
         >
           🧪 Test-Benachrichtigung (in 30s)
         </Button>
       </div>
 
       {output && (
-        <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm whitespace-pre-wrap overflow-x-auto">
+        <div
+          className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm whitespace-pre-wrap overflow-x-auto"
+          data-testid="notifications-debug-output"
+          aria-label="notifications-debug-output"
+        >
           {output}
         </div>
       )}

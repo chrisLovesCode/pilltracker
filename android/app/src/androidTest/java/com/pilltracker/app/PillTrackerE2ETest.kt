@@ -14,6 +14,7 @@ import androidx.test.espresso.web.webdriver.Locator
 import androidx.test.espresso.web.model.Atoms
 import org.hamcrest.Description
 import org.hamcrest.Matchers.any
+import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.equalTo
 import org.hamcrest.TypeSafeMatcher
 import org.json.JSONObject
@@ -257,6 +258,28 @@ class PillTrackerE2ETest {
         throw AssertionError("Web element not found: $selector", lastErr)
     }
 
+    private fun waitForCssTextContains(selector: String, needle: String, timeoutMs: Long = 30000) {
+        val end = System.currentTimeMillis() + timeoutMs
+        var lastErr: Throwable? = null
+        while (System.currentTimeMillis() < end) {
+            handleRuntimePermissions(1500)
+            try {
+                onWebView(withId(webViewId()))
+                    .forceJavascriptEnabled()
+                    .withElement(findElement(Locator.CSS_SELECTOR, selector))
+                    .check(webMatches(getText(), containsString(needle)))
+                return
+            } catch (t: Throwable) {
+                lastErr = t
+                Thread.sleep(250)
+            }
+        }
+        println("=== LOGCAT (waitForCssTextContains failed: $selector contains \"$needle\") ===")
+        println(dumpLogcatFiltered())
+        println("=== /LOGCAT ===")
+        throw AssertionError("Web element text did not contain needle: $selector contains $needle", lastErr)
+    }
+
     private fun waitForXpath(xpath: String, timeoutMs: Long = 30000) {
         val end = System.currentTimeMillis() + timeoutMs
         var lastErr: Throwable? = null
@@ -360,6 +383,43 @@ class PillTrackerE2ETest {
     fun test03_openNotificationsDebug() {
         requireUiReady()
         clickCss("[aria-label='open-notifications-debug']")
+        clickCss("[aria-label='notifications-debug-close']")
+    }
+
+    @Test
+    fun test04_notificationsE2E() {
+        requireUiReady()
+
+        // Open notifications debug.
+        clickCss("[aria-label='open-notifications-debug']")
+
+        // Verify permissions are granted (or at least the debug call works).
+        clickCss("[aria-label='notifications-debug-permissions']", 45000)
+        waitForCss("[aria-label='notifications-debug-output']", 45000)
+        // If the permission dialog appears, setUp()/wait loops should click Allow automatically.
+        waitForCssTextContains("[aria-label='notifications-debug-output']", "Display:", 45000)
+
+        // Schedule a test notification and verify it arrives in the system shade.
+        clickCss("[aria-label='notifications-debug-test']", 45000)
+        waitForCssTextContains("[aria-label='notifications-debug-output']", "Test-Benachrichtigung geplant", 45000)
+
+        // Wait up to ~45s for delivery (debug helper schedules in 30s).
+        device.waitForIdle(1500)
+        device.openNotification()
+        val notif =
+            device.wait(Until.findObject(By.textContains("Test Benachrichtigung")), 45000)
+                ?: device.wait(Until.findObject(By.textContains("Wenn du das siehst")), 5000)
+
+        if (notif == null) {
+            println("=== LOGCAT (notification not delivered) ===")
+            println(dumpLogcatFiltered())
+            println("=== /LOGCAT ===")
+            fail("Test notification was not delivered to system notification shade within timeout")
+        }
+
+        // Close shade.
+        device.pressBack()
+
         clickCss("[aria-label='notifications-debug-close']")
     }
 }

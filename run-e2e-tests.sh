@@ -20,9 +20,15 @@ NC='\033[0m' # No Color
 
 # Parse arguments
 SKIP_BUILD=false
-if [[ "$1" == "--skip-build" ]]; then
-    SKIP_BUILD=true
-fi
+OPEN_REPORT=false
+for arg in "$@"; do
+    if [[ "$arg" == "--skip-build" ]]; then
+        SKIP_BUILD=true
+    fi
+    if [[ "$arg" == "--open-report" ]]; then
+        OPEN_REPORT=true
+    fi
+done
 
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}  PillTracker E2E Tests${NC}"
@@ -94,6 +100,12 @@ if [ $PREFLIGHT_EXIT_CODE -ne 0 ]; then
     echo -e "${RED}========================================${NC}"
     echo -e "${RED}  ✗ Preflight FAILED (DB/UI not ready)${NC}"
     echo -e "${RED}========================================${NC}"
+    echo -e "\n${BLUE}JUnit XML (latest):${NC}"
+    LATEST_XML=$(ls -t android/app/build/outputs/androidTest-results/connected/debug/TEST-*.xml 2>/dev/null | head -n 1 || true)
+    if [ -n "$LATEST_XML" ]; then
+        echo -e "${BLUE}  $LATEST_XML${NC}"
+        rg -n "<failure" "$LATEST_XML" 2>/dev/null | head -n 20 || true
+    fi
     echo -e "\n${BLUE}Test Report:${NC}"
     echo -e "${BLUE}  file://$(pwd)/android/app/build/reports/androidTests/connected/debug/index.html${NC}\n"
     exit $PREFLIGHT_EXIT_CODE
@@ -115,13 +127,28 @@ else
     echo -e "${RED}========================================${NC}"
     echo -e "${RED}  ✗ Some Tests FAILED${NC}"
     echo -e "${RED}========================================${NC}"
+
+    echo -e "\n${BLUE}JUnit XML (latest):${NC}"
+    LATEST_XML=$(ls -t android/app/build/outputs/androidTest-results/connected/debug/TEST-*.xml 2>/dev/null | head -n 1 || true)
+    if [ -n "$LATEST_XML" ]; then
+        echo -e "${BLUE}  $LATEST_XML${NC}"
+        # Print first failure line(s) to console for fast feedback.
+        rg -n "<failure" "$LATEST_XML" 2>/dev/null | head -n 20 || true
+    fi
+
+    echo -e "\n${BLUE}Logcat (latest):${NC}"
+    LATEST_LOGCAT=$(ls -t android/app/build/outputs/androidTest-results/connected/debug/*/logcat-*.txt 2>/dev/null | head -n 1 || true)
+    if [ -n "$LATEST_LOGCAT" ]; then
+        echo -e "${BLUE}  $LATEST_LOGCAT${NC}"
+        tail -n 60 "$LATEST_LOGCAT" 2>/dev/null || true
+    fi
 fi
 
 echo -e "\n${BLUE}Test Report:${NC}"
 echo -e "${BLUE}  file://$(pwd)/android/app/build/reports/androidTests/connected/debug/index.html${NC}\n"
 
-# Open report automatically
-if command -v open &> /dev/null; then
+# Optional: open report in browser if explicitly requested.
+if [ "$OPEN_REPORT" = true ] && command -v open &> /dev/null; then
     open android/app/build/reports/androidTests/connected/debug/index.html 2>/dev/null || true
 fi
 
