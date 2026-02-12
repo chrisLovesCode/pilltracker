@@ -3,10 +3,13 @@
 set -euo pipefail
 
 # Build a release APK with the production web bundle (no debug UI),
-# and copy it into "Latest Android Release/pilltracker_v1.apk".
+# and copy it into "Latest Android Release/pilltracker_v<package.json version>.apk".
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
+
+APP_VERSION="$(node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); process.stdout.write(p.version);")"
+APK_FILENAME="pilltracker_v${APP_VERSION}.apk"
 
 export ANDROID_HOME="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
 export PATH="$PATH:$ANDROID_HOME/platform-tools"
@@ -42,5 +45,5 @@ else
   exit 1
 fi
 
-cp -f "$APK_PATH" "$OUT_DIR/pilltracker_v1.apk"
-echo "[4/4] Copied to: $OUT_DIR/pilltracker_v1.apk"
+cp -f "$APK_PATH" "$OUT_DIR/$APK_FILENAME"
+echo "[4/4] Copied to: $OUT_DIR/$APK_FILENAME"

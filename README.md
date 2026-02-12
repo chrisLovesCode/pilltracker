@@ -35,7 +35,7 @@ Status: **Alpha / Testing** (Schema und Features koennen sich noch stark aendern
 ## APK (schnell testen)
 
 Eine aktuelle Test-APK liegt unter:
-`Latest Android Release/pilltracker_v1.apk`
+`Latest Android Release/pilltracker_v0.0.1.apk`
 
 ## Screenshots
 
@@ -80,4 +80,4 @@ Die Instrumentation-Tests sind hier:
 ```
 
 Ergebnis:
-`Latest Android Release/pilltracker_v1.apk`
+`Latest Android Release/pilltracker_v0.0.1.apk`

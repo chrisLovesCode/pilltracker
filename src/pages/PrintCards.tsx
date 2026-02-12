@@ -51,41 +51,44 @@ export default function PrintCards(props: Props) {
     return (
       <Card
         key={m.id}
-        className="print-card p-4 bg-white border border-gray-300 shadow-none"
+        className="print-card p-4 bg-surface-1 border border-border-default shadow-none"
         data-testid={`print-medication-card-${m.id}`}
       >
         <div className="flex items-start justify-between gap-3 mb-2">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <Icon icon="mdi:pill" className="text-indigo-700 text-xl" />
-              <h3 className="text-lg font-bold text-gray-900 truncate">{m.name}</h3>
+              <Icon icon="mdi:pill" className="text-brand-color-strong text-xl" />
+              <h3 className="text-lg font-bold text-text-primary break-words [overflow-wrap:anywhere]">{m.name}</h3>
             </div>
-            <p className="text-sm text-gray-700 mt-0.5">
+            <p className="text-sm text-text-secondary mt-0.5">
               {m.dosageAmount} {m.dosageUnit}
             </p>
           </div>
-          {m.enableNotifications && (
-            <div className="shrink-0 text-xs px-2 py-1 rounded bg-indigo-50 text-indigo-800 border border-indigo-200">
-              Notifications
-            </div>
-          )}
         </div>
 
         <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
-          <div className="text-gray-500">Zeit</div>
-          <div className="text-gray-900 font-medium">
-            {Array.isArray(m.scheduleTimes) && m.scheduleTimes.length > 0 ? m.scheduleTimes.join(', ') : '-'}
+          <div className="text-text-muted">Zeit</div>
+          <div className="text-text-primary font-medium flex flex-wrap gap-1">
+            {Array.isArray(m.scheduleTimes) && m.scheduleTimes.length > 0 ? (
+              m.scheduleTimes.map((time, index) => (
+                <span key={`${m.id}-print-time-${index}`} className="inline-block px-2 py-0.5 rounded bg-surface-2 mr-1">
+                  {time}
+                </span>
+              ))
+            ) : (
+              '-'
+            )}
           </div>
 
-          <div className="text-gray-500">Tage</div>
-          <div className="text-gray-900 font-medium">
+          <div className="text-text-muted">Tage</div>
+          <div className="text-text-primary font-medium">
             {Array.isArray(m.scheduleDays) ? formatScheduleDaysArray(m.scheduleDays) : formatScheduleDays(m.scheduleDays as any)}
           </div>
 
           {lastIntake && (
             <>
-              <div className="text-gray-500">Zuletzt</div>
-              <div className="text-gray-900 font-semibold">
+              <div className="text-text-muted">Zuletzt</div>
+              <div className="text-text-primary font-semibold">
                 {formatDateTime(language, lastIntake.takenAt)}
               </div>
             </>
@@ -93,9 +96,9 @@ export default function PrintCards(props: Props) {
         </div>
 
         {m.notes && (
-          <div className="mt-3 text-sm text-gray-700 border-t border-gray-200 pt-2">
-            <div className="text-gray-500 text-xs mb-1">Notizen</div>
-            <div className="whitespace-pre-wrap">{m.notes}</div>
+          <div className="mt-3 text-sm text-text-secondary border-t border-border-subtle pt-2">
+            <div className="text-text-muted text-xs mb-1">Notizen</div>
+            <div className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{m.notes}</div>
           </div>
         )}
       </Card>
@@ -103,21 +106,21 @@ export default function PrintCards(props: Props) {
   };
 
   return (
-    <div className="print-root min-h-screen pt-safe-area bg-white text-black">
-      <div className="no-print sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-gray-200">
-        <div className="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Icon icon="mdi:printer" className="text-2xl text-gray-900" />
-            <div>
-              <div className="font-semibold text-gray-900" data-testid="print-title">
+    <div className="print-root min-h-screen pt-safe-area bg-surface-1 text-black">
+      <div className="no-print sticky top-0 z-50 bg-surface-1/90 backdrop-blur border-b border-border-subtle">
+        <div className="mx-auto max-w-5xl px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <Icon icon="mdi:printer" className="text-2xl text-text-primary" />
+            <div className="min-w-0">
+              <div className="font-semibold text-text-primary break-words [overflow-wrap:anywhere]" data-testid="print-title">
                 Drucken: Medikamentekarten
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-text-muted break-words [overflow-wrap:anywhere]">
                 Tipp: Im Druckdialog direkt drucken oder speichern.
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <Button
               variant="secondary"
               icon="mdi:arrow-left"
@@ -128,6 +131,8 @@ export default function PrintCards(props: Props) {
               Zuruck
             </Button>
             <Button
+              size="sm"
+              className="px-2"
               icon="mdi:printer"
               onClick={onPrint}
               data-testid="print-cards-button"
@@ -143,9 +148,9 @@ export default function PrintCards(props: Props) {
             {grouped.map(({ group, meds }) => (
               <div key={group.id} className="mb-8">
                 <div className="mb-3">
-                  <div className="text-sm uppercase tracking-wide text-gray-500">Gruppe</div>
-                  <div className="text-2xl font-bold text-gray-900">{group.name}</div>
-                  {group.description && <div className="text-sm text-gray-600 mt-1">{group.description}</div>}
+                  <div className="text-sm uppercase tracking-wide text-text-muted">Gruppe</div>
+                  <div className="text-2xl font-bold text-text-primary break-words [overflow-wrap:anywhere]">{group.name}</div>
+                  {group.description && <div className="text-sm text-text-muted mt-1 break-words [overflow-wrap:anywhere]">{group.description}</div>}
                 </div>
                 <div className="print-grid grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {meds.map(renderMedicationCard)}
@@ -158,8 +163,8 @@ export default function PrintCards(props: Props) {
         {ungrouped.length > 0 && (
           <div>
             <div className="mb-3">
-              <div className="text-sm uppercase tracking-wide text-gray-500">Ohne Gruppe</div>
-              <div className="text-2xl font-bold text-gray-900">Medikamente</div>
+              <div className="text-sm uppercase tracking-wide text-text-muted">Ohne Gruppe</div>
+              <div className="text-2xl font-bold text-text-primary">Medikamente</div>
             </div>
             <div className="print-grid grid grid-cols-1 sm:grid-cols-2 gap-4">
               {ungrouped.map(renderMedicationCard)}
@@ -168,7 +173,7 @@ export default function PrintCards(props: Props) {
         )}
 
         {medications.length === 0 && (
-          <div className="py-20 text-center text-gray-700" data-testid="print-empty">
+          <div className="py-20 text-center text-text-secondary" data-testid="print-empty">
             Keine Medikamente vorhanden.
           </div>
         )}

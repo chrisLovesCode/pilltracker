@@ -24,6 +24,7 @@ import org.junit.Before
 import org.junit.FixMethodOrder
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.Timeout
 import org.junit.runner.RunWith
 import org.junit.runners.MethodSorters
 
@@ -42,11 +43,16 @@ class PillTrackerE2ETest {
     @get:Rule
     val activityRule = ActivityScenarioRule(MainActivity::class.java)
 
+    @get:Rule
+    val globalTimeout: Timeout = Timeout.seconds(300)
+
     private lateinit var device: UiDevice
 
     companion object {
         private const val TEST_MED_NAME = "Test Aspirin"
         private const val TEST_NOTIF_MED_NAME = "Notif Test Med"
+        private const val DEFAULT_WEB_TIMEOUT_MS = 30000L
+        private const val NULL_ATOM_FAIL_FAST_AFTER = 4
     }
 
     @Before
@@ -91,7 +97,7 @@ class PillTrackerE2ETest {
     private fun dumpLogcatFiltered(): String {
         return try {
             val filtered = device.executeShellCommand(
-                "sh -c \"logcat -d | grep -E 'Capacitor/Console|\\\\[Notifications\\\\]|\\\\[Debug\\\\]|LocalNotifications|Database Initialization Failed|no such table|\\\\[DB\\\\]|\\\\[Main\\\\]|AndroidRuntime|CapacitorSQLite|sqlite|SQL|FATAL|ERROR' | tail -n 300\""
+                "sh -c \"logcat -d | grep -E 'Capacitor/Console|\\\\[Notifications\\\\]|\\\\[Debug\\\\]|\\\\[Print\\\\]|LocalNotifications|Database Initialization Failed|no such table|\\\\[DB\\\\]|\\\\[Main\\\\]|AndroidRuntime|CapacitorSQLite|PillTrackerPrint|printCurrent|PrintManager|sqlite|SQL|FATAL|ERROR' | tail -n 300\""
             ).trim()
             if (filtered.isNotEmpty()) filtered
             else device.executeShellCommand("sh -c \"logcat -d | tail -n 250\"")
@@ -100,38 +106,81 @@ class PillTrackerE2ETest {
         }
     }
 
-    private fun captureStringFromScript(scriptBody: String, timeoutMs: Long = 15000): String {
-        // Atoms.script runs in a function body context. Use `return ...` in scriptBody.
-        var captured: String? = null
-        val matcher = object : TypeSafeMatcher<String>() {
-            override fun describeTo(description: Description) {
-                description.appendText("capture script result")
-            }
+    private fun isNullAtomError(t: Throwable): Boolean {
+        val haystack = (t.message ?: "") + "\n" + t.stackTraceToString()
+        return haystack.contains("Atom evaluation returned null", ignoreCase = true)
+    }
 
-            override fun matchesSafely(item: String): Boolean {
-                captured = item
-                return true
-            }
-        }
+    private fun failWithFilteredLogcat(message: String, cause: Throwable? = null): Nothing {
+        println("=== LOGCAT ($message) ===")
+        println(dumpLogcatFiltered())
+        println("=== /LOGCAT ===")
+        throw AssertionError(message, cause)
+    }
 
-        val end = System.currentTimeMillis() + timeoutMs
+    private inline fun retryWebAction(
+        actionLabel: String,
+        timeoutMs: Long = DEFAULT_WEB_TIMEOUT_MS,
+        failFastOnNullAtomAfter: Int = NULL_ATOM_FAIL_FAST_AFTER,
+        action: () -> Unit
+    ) {
+        val deadline = System.currentTimeMillis() + timeoutMs
         var lastErr: Throwable? = null
-        while (System.currentTimeMillis() < end) {
-            handleRuntimePermissions(1500)
+        var nullAtomErrorCount = 0
+
+        while (System.currentTimeMillis() < deadline) {
+            handleRuntimePermissions(400)
             try {
-                onWebView(withId(webViewId()))
-                    .forceJavascriptEnabled()
-                    .check(webMatches(Atoms.script(scriptBody, Atoms.castOrDie(String::class.java)), matcher))
-                return captured ?: ""
+                action()
+                return
             } catch (t: Throwable) {
                 lastErr = t
+                if (isNullAtomError(t)) {
+                    nullAtomErrorCount += 1
+                    if (nullAtomErrorCount >= failFastOnNullAtomAfter) {
+                        failWithFilteredLogcat(
+                            "WebView atom became null repeatedly while $actionLabel (count=$nullAtomErrorCount)",
+                            t
+                        )
+                    }
+                }
                 Thread.sleep(250)
             }
         }
-        println("=== LOGCAT (captureStringFromScript failed) ===")
-        println(dumpLogcatFiltered())
-        println("=== /LOGCAT ===")
-        throw AssertionError("Failed to capture script result", lastErr)
+
+        failWithFilteredLogcat(
+            "Timeout while $actionLabel after ${timeoutMs}ms",
+            lastErr
+        )
+    }
+
+    private fun captureStringFromScript(scriptBody: String, timeoutMs: Long = 15000): String {
+        // Atoms.script runs in a function body context. Use `return ...` in scriptBody.
+        var captured: String = ""
+        retryWebAction(
+            actionLabel = "capturing script result",
+            timeoutMs = timeoutMs,
+            failFastOnNullAtomAfter = 3
+        ) {
+            var current: String? = null
+            val matcher = object : TypeSafeMatcher<String>() {
+                override fun describeTo(description: Description) {
+                    description.appendText("capture script result")
+                }
+
+                override fun matchesSafely(item: String): Boolean {
+                    current = item
+                    return true
+                }
+            }
+
+            onWebView(withId(webViewId()))
+                .forceJavascriptEnabled()
+                .check(webMatches(Atoms.script(scriptBody, Atoms.castOrDie(String::class.java)), matcher))
+
+            captured = current ?: ""
+        }
+        return captured
     }
 
     private data class DomRect(
@@ -219,6 +268,42 @@ class PillTrackerE2ETest {
                 continue
             }
 
+            // Handle generic Android ANR/system dialogs that can steal focus
+            // from WebView/Espresso (e.g. "Print Spooler isn't responding").
+            val waitButton =
+                device.findObject(By.res("android:id/aerr_wait"))
+                    ?: device.findObject(By.textContains("Wait"))
+                    ?: device.findObject(By.textContains("WAIT"))
+                    ?: device.findObject(By.textContains("Warten"))
+                    ?: device.findObject(By.textContains("WARTEN"))
+
+            if (waitButton != null) {
+                try {
+                    waitButton.click()
+                    device.waitForIdle(1500)
+                } catch (_: Throwable) {
+                    device.waitForIdle(250)
+                }
+                continue
+            }
+
+            val closeAppButton =
+                device.findObject(By.res("android:id/aerr_close"))
+                    ?: device.findObject(By.textContains("Close app"))
+                    ?: device.findObject(By.textContains("CLOSE APP"))
+                    ?: device.findObject(By.textContains("App schließen"))
+                    ?: device.findObject(By.textContains("APP SCHLIESSEN"))
+
+            if (closeAppButton != null) {
+                try {
+                    closeAppButton.click()
+                    device.waitForIdle(1500)
+                } catch (_: Throwable) {
+                    device.waitForIdle(250)
+                }
+                continue
+            }
+
             val ok =
                 device.findObject(By.text("OK"))
                     ?: device.findObject(By.textContains("Continue"))
@@ -239,89 +324,51 @@ class PillTrackerE2ETest {
     }
 
     private fun waitForCss(selector: String, timeoutMs: Long = 30000) {
-        val end = System.currentTimeMillis() + timeoutMs
-        var lastErr: Throwable? = null
-        while (System.currentTimeMillis() < end) {
-            handleRuntimePermissions(1500)
-            try {
-                onWebView(withId(webViewId()))
-                    .forceJavascriptEnabled()
-                    .withElement(findElement(Locator.CSS_SELECTOR, selector))
-                    .check(webMatches(getText(), any(String::class.java)))
-                return
-            } catch (t: Throwable) {
-                lastErr = t
-                Thread.sleep(250)
-            }
+        retryWebAction("waiting for CSS $selector", timeoutMs) {
+            onWebView(withId(webViewId()))
+                .forceJavascriptEnabled()
+                .withElement(findElement(Locator.CSS_SELECTOR, selector))
+                .check(webMatches(getText(), any(String::class.java)))
         }
-        println("=== LOGCAT (waitForCss failed: $selector) ===")
-        println(dumpLogcatFiltered())
-        println("=== /LOGCAT ===")
-        throw AssertionError("Web element not found: $selector", lastErr)
     }
 
     private fun waitForCssTextContains(selector: String, needle: String, timeoutMs: Long = 30000) {
-        val end = System.currentTimeMillis() + timeoutMs
-        var lastErr: Throwable? = null
-        while (System.currentTimeMillis() < end) {
-            handleRuntimePermissions(1500)
-            try {
-                onWebView(withId(webViewId()))
-                    .forceJavascriptEnabled()
-                    .withElement(findElement(Locator.CSS_SELECTOR, selector))
-                    .check(webMatches(getText(), containsString(needle)))
-                return
-            } catch (t: Throwable) {
-                lastErr = t
-                Thread.sleep(250)
-            }
+        retryWebAction("waiting for CSS text $selector contains \"$needle\"", timeoutMs) {
+            onWebView(withId(webViewId()))
+                .forceJavascriptEnabled()
+                .withElement(findElement(Locator.CSS_SELECTOR, selector))
+                .check(webMatches(getText(), containsString(needle)))
         }
-        println("=== LOGCAT (waitForCssTextContains failed: $selector contains \"$needle\") ===")
-        println(dumpLogcatFiltered())
-        println("=== /LOGCAT ===")
-        throw AssertionError("Web element text did not contain needle: $selector contains $needle", lastErr)
     }
 
     private fun waitForXpath(xpath: String, timeoutMs: Long = 30000) {
-        val end = System.currentTimeMillis() + timeoutMs
-        var lastErr: Throwable? = null
-        while (System.currentTimeMillis() < end) {
-            handleRuntimePermissions(1500)
-            try {
-                onWebView(withId(webViewId()))
-                    .forceJavascriptEnabled()
-                    .withElement(findElement(Locator.XPATH, xpath))
-                    .check(webMatches(getText(), any(String::class.java)))
-                return
-            } catch (t: Throwable) {
-                lastErr = t
-                Thread.sleep(250)
-            }
+        retryWebAction("waiting for XPath $xpath", timeoutMs) {
+            onWebView(withId(webViewId()))
+                .forceJavascriptEnabled()
+                .withElement(findElement(Locator.XPATH, xpath))
+                .check(webMatches(getText(), any(String::class.java)))
         }
-        println("=== LOGCAT (waitForXpath failed) ===")
-        println("xpath=$xpath")
-        println(dumpLogcatFiltered())
-        println("=== /LOGCAT ===")
-        throw AssertionError("Web element not found (xpath): $xpath", lastErr)
     }
 
     private fun clickCss(selector: String, timeoutMs: Long = 30000) {
-        waitForCss(selector, timeoutMs)
-        onWebView(withId(webViewId()))
-            .forceJavascriptEnabled()
-            .withElement(findElement(Locator.CSS_SELECTOR, selector))
-            .perform(webScrollIntoView())
-            .perform(webClick())
+        retryWebAction("clicking CSS $selector", timeoutMs) {
+            onWebView(withId(webViewId()))
+                .forceJavascriptEnabled()
+                .withElement(findElement(Locator.CSS_SELECTOR, selector))
+                .perform(webScrollIntoView())
+                .perform(webClick())
+        }
     }
 
     private fun setInputCss(selector: String, value: String, timeoutMs: Long = 30000) {
-        waitForCss(selector, timeoutMs)
-        onWebView(withId(webViewId()))
-            .forceJavascriptEnabled()
-            .withElement(findElement(Locator.CSS_SELECTOR, selector))
-            .perform(webScrollIntoView())
-            .perform(clearElement())
-            .perform(webKeys(value))
+        retryWebAction("typing into CSS $selector", timeoutMs) {
+            onWebView(withId(webViewId()))
+                .forceJavascriptEnabled()
+                .withElement(findElement(Locator.CSS_SELECTOR, selector))
+                .perform(webScrollIntoView())
+                .perform(clearElement())
+                .perform(webKeys(value))
+        }
     }
 
     private fun setInputValueByJs(selector: String, value: String, timeoutMs: Long = 30000) {
@@ -345,14 +392,16 @@ class PillTrackerE2ETest {
             return el.value;
         """.trimIndent()
 
-        onWebView(withId(webViewId()))
-            .forceJavascriptEnabled()
-            .check(
-                webMatches(
-                    Atoms.script(script, Atoms.castOrDie(String::class.java)),
-                    equalTo(value)
+        retryWebAction("setting input by JS for $selector", timeoutMs) {
+            onWebView(withId(webViewId()))
+                .forceJavascriptEnabled()
+                .check(
+                    webMatches(
+                        Atoms.script(script, Atoms.castOrDie(String::class.java)),
+                        equalTo(value)
+                    )
                 )
-            )
+        }
     }
 
     private fun setCheckboxByJs(selector: String, checked: Boolean, timeoutMs: Long = 30000) {
@@ -369,14 +418,16 @@ class PillTrackerE2ETest {
             return el.checked ? "true" : "false";
         """.trimIndent()
 
-        onWebView(withId(webViewId()))
-            .forceJavascriptEnabled()
-            .check(
-                webMatches(
-                    Atoms.script(script, Atoms.castOrDie(String::class.java)),
-                    equalTo(if (checked) "true" else "false")
+        retryWebAction("setting checkbox by JS for $selector", timeoutMs) {
+            onWebView(withId(webViewId()))
+                .forceJavascriptEnabled()
+                .check(
+                    webMatches(
+                        Atoms.script(script, Atoms.castOrDie(String::class.java)),
+                        equalTo(if (checked) "true" else "false")
+                    )
                 )
-            )
+        }
     }
 
     private fun setSelectValueByJs(selector: String, value: String, timeoutMs: Long = 30000) {
@@ -393,14 +444,16 @@ class PillTrackerE2ETest {
             return el.value;
         """.trimIndent()
 
-        onWebView(withId(webViewId()))
-            .forceJavascriptEnabled()
-            .check(
-                webMatches(
-                    Atoms.script(script, Atoms.castOrDie(String::class.java)),
-                    equalTo(value)
+        retryWebAction("setting select by JS for $selector", timeoutMs) {
+            onWebView(withId(webViewId()))
+                .forceJavascriptEnabled()
+                .check(
+                    webMatches(
+                        Atoms.script(script, Atoms.castOrDie(String::class.java)),
+                        equalTo(value)
+                    )
                 )
-            )
+        }
     }
 
     private fun captureAttrByJs(selector: String, attr: String, timeoutMs: Long = 30000): String {
@@ -432,6 +485,37 @@ class PillTrackerE2ETest {
         val id = captureStringFromScript(script, timeoutMs).trim()
         if (id.isEmpty()) throw AssertionError("Failed to resolve medication id by name: $name")
         return id
+    }
+
+    private fun setNowOverrideForTests(value: String?) {
+        val jsValue = if (value == null) "null" else JSONObject.quote(value)
+        val script = """
+            if (typeof window.__pilltrackerSetNowForTests !== 'function') return "NO_HOOK";
+            return window.__pilltrackerSetNowForTests($jsValue);
+        """.trimIndent()
+
+        val result = captureStringFromScript(script, 20000).trim()
+        if (result != "OK") {
+            throw AssertionError("Failed to set now override for tests: $result")
+        }
+    }
+
+    private fun waitForCssAbsent(selector: String, timeoutMs: Long = 30000) {
+        val script = """
+            var sel = ${JSONObject.quote(selector)};
+            return document.querySelector(sel) ? "present" : "absent";
+        """.trimIndent()
+
+        retryWebAction("waiting for CSS to disappear $selector", timeoutMs) {
+            onWebView(withId(webViewId()))
+                .forceJavascriptEnabled()
+                .check(
+                    webMatches(
+                        Atoms.script(script, Atoms.castOrDie(String::class.java)),
+                        equalTo("absent")
+                    )
+                )
+        }
     }
 
     private fun firstGroupId(timeoutMs: Long = 30000): String {
@@ -681,8 +765,75 @@ class PillTrackerE2ETest {
         waitForCss("[data-testid='print-title']", 45000)
         waitForCss("[data-testid^='print-medication-card-']", 45000)
 
+        // Print should open the Android print UI (print spooler / save-as-pdf).
+        clickCss("[aria-label='print-cards-button']", 45000)
+        device.waitForIdle(1500)
+        val printUi =
+            device.wait(Until.findObject(By.pkg("com.android.printspooler")), 15000)
+                ?: device.wait(Until.findObject(By.textContains("Save as PDF")), 5000)
+                ?: device.wait(Until.findObject(By.textContains("Als PDF speichern")), 5000)
+                ?: device.wait(Until.findObject(By.textContains("Print options")), 5000)
+                ?: device.wait(Until.findObject(By.textContains("Druckoptionen")), 5000)
+        if (printUi == null) {
+            println("=== LOGCAT (print dialog not shown) ===")
+            println(dumpLogcatFiltered())
+            println("=== /LOGCAT ===")
+            fail("Print dialog was not shown")
+        }
+
+        // Close print UI and return to app print view.
+        device.pressBack()
+        device.waitForIdle(1500)
+        waitForCss("[data-testid='print-title']", 45000)
+
         // Navigate back to main UI.
         clickCss("[aria-label='print-back']", 45000)
         requireUiReady()
+    }
+
+    @Test
+    fun test07_dueBadgeReappearsForLaterSlotAfterEarlierTrack() {
+        requireUiReady()
+
+        // Keep this test deterministic by clearing prior data.
+        clickCss("[aria-label='open-db-debug']")
+        clickCss("[aria-label='db-init']", 45000)
+        clickCss("[aria-label='db-clear-tables']", 45000)
+        clickCss("[aria-label='db-debug-close']", 45000)
+
+        val medName = "Due Slots Med"
+
+        // Create a medication with two daily slots: 08:00 and 16:00.
+        clickCss("[aria-label='add-medication-button']")
+        setInputValueByJs("[aria-label='medication-name-input']", medName)
+        setInputValueByJs("[aria-label='dosage-amount-input']", "1")
+        setCheckboxByJs("[aria-label='notifications-checkbox']", false)
+        clickCss("[aria-label='add-time-button']")
+        setInputValueByJs("[aria-label='schedule-time-0']", "08:00")
+        setInputValueByJs("[aria-label='schedule-time-1']", "16:00")
+        clickCss("[aria-label='save-medication-button']", 45000)
+        waitForCss("[aria-label^='track-medication-']", 45000)
+
+        val medId = medicationIdByName(medName, 45000)
+
+        // At 08:10 with no intake yet, badge must be visible (first slot due).
+        setNowOverrideForTests("2026-02-12T08:10:00")
+        waitForCss("[data-testid='medication-due-${medId}']", 45000)
+
+        // Track first slot.
+        swipeOnWebView(
+            startCss = "[aria-label='track-medication-${medId}-handle']",
+            endCss = "[aria-label='track-medication-${medId}']"
+        )
+        waitForCss("[data-testid='medication-card-${medId}'] [aria-label='last-intake']", 45000)
+        waitForCssAbsent("[data-testid='medication-due-${medId}']", 45000)
+
+        // Later same day at 16:10, due badge must reappear for second slot.
+        setNowOverrideForTests("2026-02-12T16:10:00")
+        waitForCss("[data-testid='medication-due-${medId}']", 45000)
+        waitForCss("[data-testid='medication-card-${medId}'] [aria-label='last-intake']", 45000)
+
+        // Clean up override for subsequent tests.
+        setNowOverrideForTests(null)
     }
 }

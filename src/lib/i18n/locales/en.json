@@ -13,6 +13,7 @@
   "medications": {
     "title": "My Medications",
     "addNew": "Add Medication",
+    "quickAddLabel": "Medication",
     "addFirst": "Add your first medication",
     "empty": "No medications yet",
     "emptyDescription": "Add your first medication!",
@@ -25,12 +26,20 @@
     "times": "Times",
     "enableNotifications": "Enable Notifications",
     "lastTaken": "Last taken",
+    "dueNow": "Due now",
+    "dueForMinutes_one": "Due for {{count}} minute",
+    "dueForMinutes_other": "Due for {{count}} minutes",
+    "dueForHours_one": "Due for {{count}} hour",
+    "dueForHours_other": "Due for {{count}} hours",
+    "dueForDays_one": "Due for {{count}} day",
+    "dueForDays_other": "Due for {{count}} days",
     "neverTaken": "Not taken yet",
     "trackIntake": "Track Intake"
   },
   "groups": {
     "title": "Medication Groups",
     "addNew": "Add Group",
+    "quickAddLabel": "Group",
     "empty": "No groups yet. Create a group to organize medications!",
     "name": "Group Name",
     "medications": "Medications",
@@ -67,6 +76,9 @@
     "add": "Add",
     "edit": "Edit",
     "delete": "Delete",
+    "help": "Help",
+    "print": "Print",
+    "back": "Back",
     "save": "Save",
     "saving": "Saving...",
     "cancel": "Cancel",
@@ -84,5 +96,37 @@
     "title": "Settings",
     "language": "Language",
     "notifications": "Notifications"
+  },
+  "help": {
+    "title": "Help",
+    "subtitle": "How PillTracker works",
+    "intro": "You can manage medications and groups, schedule reminders, and track your intake in a simple way.",
+    "printCardsHint": "Medication cards",
+    "sections": {
+      "addMedication": {
+        "title": "Add a medication",
+        "body": "Tap + Medication and enter name, dosage, days, and times. Then save with Save."
+      },
+      "groups": {
+        "title": "Use groups",
+        "body": "Create a medication group with + Group. This helps you keep related medications organized."
+      },
+      "reminders": {
+        "title": "Plan reminders",
+        "body": "Select weekdays and times. If notifications are enabled, the app reminds you at the scheduled time."
+      },
+      "track": {
+        "title": "Track intake",
+        "body": "When you have taken a medication, slide the tracker to the right. The intake is saved immediately."
+      },
+      "due": {
+        "title": "See due medications",
+        "body": "If a scheduled time is reached and not tracked yet, the card is highlighted so you can see what is still open."
+      },
+      "lastTaken": {
+        "title": "Last taken",
+        "body": "Each card shows the latest intake timestamp. This helps when you are not sure if you already took it."
+      }
+    }
   }
 }

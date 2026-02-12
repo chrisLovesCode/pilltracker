@@ -30,13 +30,13 @@ export function Button({
 }: ButtonProps) {
   const testId = (props as any)['data-testid'] as string | undefined;
   const ariaLabel = (props as any)['aria-label'] as string | undefined;
-  const baseClasses = 'inline-flex items-center justify-center gap-2 font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed';
+  const baseClasses = 'inline-flex items-center justify-center gap-2 font-semibold rounded-control transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed';
   
   const variantClasses = {
-    primary: 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm hover:shadow-md',
-    secondary: 'bg-gray-200 hover:bg-gray-300 text-gray-800',
-    danger: 'bg-red-600 hover:bg-red-700 text-white',
-    ghost: 'hover:bg-gray-100 text-gray-700',
+    primary: 'bg-brand-color hover:bg-brand-color-strong text-brand-on-solid shadow-sm hover:shadow-md',
+    secondary: 'bg-surface-3 hover:bg-surface-4 text-text-primary',
+    danger: 'bg-red-600 hover:bg-red-700 text-text-inverse',
+    ghost: 'hover:bg-surface-2 text-text-secondary',
   };
   
   const sizeClasses = {

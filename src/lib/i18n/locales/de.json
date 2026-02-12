@@ -13,6 +13,7 @@
   "medications": {
     "title": "Meine Medikamente",
     "addNew": "Medikament hinzufügen",
+    "quickAddLabel": "Medikament",
     "addFirst": "Füge dein erstes Medikament hinzu",
     "empty": "Noch keine Medikamente",
     "emptyDescription": "Füge dein erstes Medikament hinzu!",
@@ -25,12 +26,20 @@
     "times": "Uhrzeiten",
     "enableNotifications": "Benachrichtigungen aktivieren",
     "lastTaken": "Zuletzt eingenommen",
+    "dueNow": "Jetzt fällig",
+    "dueForMinutes_one": "Seit {{count}} Minute fällig",
+    "dueForMinutes_other": "Seit {{count}} Minuten fällig",
+    "dueForHours_one": "Seit {{count}} Stunde fällig",
+    "dueForHours_other": "Seit {{count}} Stunden fällig",
+    "dueForDays_one": "Seit {{count}} Tag fällig",
+    "dueForDays_other": "Seit {{count}} Tagen fällig",
     "neverTaken": "Noch nicht eingenommen",
     "trackIntake": "Einnahme tracken"
   },
   "groups": {
     "title": "Medikamentengruppen",
     "addNew": "Gruppe hinzufügen",
+    "quickAddLabel": "Gruppe",
     "empty": "Noch keine Gruppen. Erstelle eine Gruppe um Medikamente zu organisieren!",
     "name": "Gruppenname",
     "medications": "Medikamente",
@@ -67,6 +76,9 @@
     "add": "Hinzufügen",
     "edit": "Bearbeiten",
     "delete": "Löschen",
+    "help": "Hilfe",
+    "print": "Drucken",
+    "back": "Zurück",
     "save": "Speichern",
     "saving": "Speichern...",
     "cancel": "Abbrechen",
@@ -84,5 +96,37 @@
     "title": "Einstellungen",
     "language": "Sprache",
     "notifications": "Benachrichtigungen"
+  },
+  "help": {
+    "title": "Hilfe",
+    "subtitle": "So funktioniert PillTracker",
+    "intro": "Du kannst hier Medikamente und Gruppen verwalten, Erinnerungen planen und Einnahmen einfach nachhalten.",
+    "printCardsHint": "Medikamentekarten",
+    "sections": {
+      "addMedication": {
+        "title": "Medikament anlegen",
+        "body": "Tippe auf + Medikament und trage Name, Dosierung, Tage und Uhrzeiten ein. Danach speicherst du mit Speichern."
+      },
+      "groups": {
+        "title": "Gruppen nutzen",
+        "body": "Lege mit + Gruppe eine Medikamentengruppe an. So kannst du passende Medikamente zusammenfassen und besser organisieren."
+      },
+      "reminders": {
+        "title": "Erinnerungen planen",
+        "body": "Wähle die Wochentage und Uhrzeiten aus. Wenn Benachrichtigungen aktiv sind, erinnert dich die App zur geplanten Zeit."
+      },
+      "track": {
+        "title": "Einnahme tracken",
+        "body": "Wenn du ein Medikament genommen hast, wische den Regler nach rechts. Die Einnahme wird direkt gespeichert."
+      },
+      "due": {
+        "title": "Fällige Medikamente sehen",
+        "body": "Ist eine Einnahmezeit erreicht und noch nicht getrackt, wird die Karte markiert. So siehst du sofort, was noch offen ist."
+      },
+      "lastTaken": {
+        "title": "Zuletzt eingenommen",
+        "body": "Unter jeder Karte siehst du den letzten Einnahmezeitpunkt. Das hilft dir, wenn du dir unsicher bist."
+      }
+    }
   }
 }

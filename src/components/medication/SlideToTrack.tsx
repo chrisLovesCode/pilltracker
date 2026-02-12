@@ -146,12 +146,12 @@ export function SlideToTrack({
       ref={containerRef}
     >
       {/* Background Track */}
-      <div className="absolute inset-0 bg-gray-200">
+      <div className="absolute inset-0 bg-surface-3">
         {/* Progress Fill */}
         <div 
           className={`
             absolute inset-y-0 left-0 transition-colors duration-200
-            ${isTracked ? 'bg-green-500' : 'bg-indigo-500'}
+            ${isTracked ? 'bg-green-500' : 'bg-brand-color'}
           `}
           style={{ width: `${progressPercentage}%` }}
         />
@@ -160,8 +160,8 @@ export function SlideToTrack({
       {/* Label */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <span className={`
-          font-medium transition-opacity duration-200
-          ${progressPercentage > 50 ? 'text-white' : 'text-gray-600'}
+          text-track-label font-medium transition-opacity duration-200
+          ${progressPercentage > 50 ? 'text-brand-on-solid' : 'text-text-muted'}
         `}>
           {loading ? 'Tracking...' : isTracked ? '✓ Tracked!' : label}
         </span>
@@ -172,7 +172,7 @@ export function SlideToTrack({
         ref={sliderRef}
         className={`
           absolute top-1 bottom-1 left-1 w-12
-          bg-white rounded-full shadow-lg
+          bg-surface-1 rounded-full shadow-lg
           flex items-center justify-center
           transition-transform duration-100
           ${!isDragging && !isTracked ? 'transition-all duration-300' : ''}
@@ -186,11 +186,11 @@ export function SlideToTrack({
         aria-label={`${testId}-handle`}
       >
         {loading ? (
-          <Icon icon="mdi:loading" className="animate-spin text-indigo-600 text-xl" />
+          <Icon icon="mdi:loading" className="animate-spin text-brand-color text-xl" />
         ) : isTracked ? (
           <Icon icon="mdi:check" className="text-green-600 text-xl" />
         ) : (
-          <Icon icon="mdi:chevron-right" className="text-indigo-600 text-xl" />
+          <Icon icon="mdi:chevron-right" className="text-brand-color text-xl" />
         )}
       </div>
     </div>

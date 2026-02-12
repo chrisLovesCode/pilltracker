@@ -6,6 +6,58 @@
   --pt-safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Tailwind v4 design tokens (single source of truth for brand + radius values). */
+@theme {
+  --color-brand-color: #0d8064;
+  --color-brand-color-strong: #0a6c53;
+  --color-brand-on-solid: #ffffff;
+  --color-brand-color-soft: #e0f0ea;
+  --color-brand-on-soft: #0d5743;
+  --color-brand-color-soft-text: var(--color-brand-on-soft);
+  --color-brand-border-soft: #bedfd3;
+  --color-brand-border: #95cbb9;
+  --color-brand-focus: #187f64;
+
+  --color-app-bg-start: #f3f8f6;
+  --color-app-bg-mid: #eff6f3;
+  --color-app-bg-end: #f4f8fb;
+
+  --color-due-bg: #fff7ed;
+  --color-due-border: #fb923c;
+  --color-due-pill-bg: #ffedd5;
+  --color-due-pill-text: #9a3412;
+
+  --color-surface-1: #ffffff;
+  --color-surface-2: #f3f4f6;
+  --color-surface-3: #e5e7eb;
+  --color-surface-4: #d1d5db;
+  --color-surface-inverse: #1f2937;
+
+  --color-text-primary: #1f2937;
+  --color-text-secondary: #374151;
+  --color-text-muted: #6b7280;
+  --color-text-soft: #9ca3af;
+  --color-text-inverse: #ffffff;
+  --color-text-inverse-muted: #cbd5e1;
+
+  --color-border-subtle: #e5e7eb;
+  --color-border-default: #d1d5db;
+
+  --radius-control: 0.75rem;
+  --radius-card: 0.75rem;
+  --radius-modal: 1rem;
+
+  /* Typography tokens (content-focused, buttons/headlines stay explicit in components). */
+  --text-content: 1.08rem;
+  --text-content--line-height: 1.55;
+  --text-content-muted: 1rem;
+  --text-content-muted--line-height: 1.5;
+  --text-chip: 0.92rem;
+  --text-chip--line-height: 1.35;
+  --text-track-label: 0.94rem;
+  --text-track-label--line-height: 1.2;
+}
+
 .pt-safe-area {
   padding-top: var(--pt-safe-top);
   padding-bottom: var(--pt-safe-bottom);

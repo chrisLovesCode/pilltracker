@@ -22,6 +22,8 @@ interface MedicationFormProps {
  */
 export function MedicationForm({ medication, onClose, onSave, groups = [] }: MedicationFormProps) {
   const { t } = useTranslation();
+  const FOUR_HOURS_IN_MINUTES = 4 * 60;
+  const MIDNIGHT_24H_MINUTES = 24 * 60;
   
   const [formData, setFormData] = useState<MedicationFormData>({
     name: '',
@@ -77,9 +79,44 @@ export function MedicationForm({ medication, onClose, onSave, groups = [] }: Med
    * Add new schedule time
    */
   const addScheduleTime = () => {
+    const getMinutesFromTime = (time: string): number | null => {
+      const match = /^(\d{1,2}):([0-5]\d)$/.exec(time.trim());
+      if (!match) return null;
+      const hours = Number(match[1]);
+      const minutes = Number(match[2]);
+
+      // Allow 24:00 as a legacy/special value, but nothing beyond it.
+      if (hours > 24) return null;
+      if (hours === 24 && minutes !== 0) return null;
+
+      return (hours * 60) + minutes;
+    };
+
+    const getNextDefaultTime = (times: string[]): string => {
+      const lastTime = times[times.length - 1];
+      const lastMinutes = getMinutesFromTime(lastTime);
+
+      if (lastMinutes === null) return '00:00';
+
+      // After reaching midnight/end-of-day, keep default at 00:00 for further entries.
+      if (lastMinutes === MIDNIGHT_24H_MINUTES || (lastMinutes === 0 && times.length > 1)) {
+        return '00:00';
+      }
+
+      const nextMinutes = lastMinutes + FOUR_HOURS_IN_MINUTES;
+      if (nextMinutes >= MIDNIGHT_24H_MINUTES) {
+        // HTML time input supports 00:00-23:59; use 00:00 for 24:00 and beyond.
+        return '00:00';
+      }
+
+      const hours = Math.floor(nextMinutes / 60);
+      const minutes = nextMinutes % 60;
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    };
+
     setFormData(prev => ({
       ...prev,
-      scheduleTimes: [...prev.scheduleTimes, '12:00'],
+      scheduleTimes: [...prev.scheduleTimes, getNextDefaultTime(prev.scheduleTimes)],
     }));
   };
 
@@ -198,7 +235,7 @@ export function MedicationForm({ medication, onClose, onSave, groups = [] }: Med
 
         {/* Interval */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
+          <label className="block text-content-muted font-medium text-text-secondary mb-3">
             {t('medications.schedule')}
           </label>
           
@@ -206,10 +243,10 @@ export function MedicationForm({ medication, onClose, onSave, groups = [] }: Med
           <button
             type="button"
             onClick={selectEveryDay}
-            className={`w-full mb-3 px-4 py-2 rounded-lg border-2 transition-colors ${
+            className={`w-full mb-3 px-4 py-2 rounded-control border-2 transition-colors ${
               isEveryDaySelected()
-                ? 'border-indigo-600 bg-indigo-50 text-indigo-700 font-medium'
-                : 'border-gray-300 bg-white text-gray-700 hover:border-indigo-400'
+                ? 'border-brand-color bg-brand-color-soft text-brand-on-soft font-medium'
+                : 'border-border-default bg-surface-1 text-text-secondary hover:border-brand-border'
             }`}
             data-testid="every-day-button"
             aria-label="every-day-button"
@@ -224,10 +261,10 @@ export function MedicationForm({ medication, onClose, onSave, groups = [] }: Med
                 key={day}
                 type="button"
                 onClick={() => toggleDay(day)}
-                className={`px-2 py-3 rounded-lg border-2 text-sm font-medium transition-colors ${
+                className={`px-2 py-3 rounded-control border-2 text-sm font-medium transition-colors ${
                   formData.scheduleDays.includes(day)
-                    ? 'border-indigo-600 bg-indigo-600 text-white'
-                    : 'border-gray-300 bg-white text-gray-700 hover:border-indigo-400'
+                    ? 'border-brand-color bg-brand-color text-brand-on-solid'
+                    : 'border-border-default bg-surface-1 text-text-secondary hover:border-brand-border'
                 }`}
                 data-testid={`day-button-${day}`}
                 aria-label={`day-button-${day}`}
@@ -240,7 +277,7 @@ export function MedicationForm({ medication, onClose, onSave, groups = [] }: Med
 
         {/* Schedule Times */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-content-muted font-medium text-text-secondary mb-2">
             {t('medications.times')}
           </label>
           <div className="space-y-2">
@@ -250,7 +287,7 @@ export function MedicationForm({ medication, onClose, onSave, groups = [] }: Med
                   type="time"
                   value={time}
                   onChange={e => updateScheduleTime(index, e.target.value)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="flex-1 px-4 py-2 border border-border-default rounded-control focus:ring-2 focus:ring-brand-focus focus:outline-none text-content"
                   data-testid={`schedule-time-${index}`}
                   aria-label={`schedule-time-${index}`}
                 />
@@ -285,11 +322,11 @@ export function MedicationForm({ medication, onClose, onSave, groups = [] }: Med
             type="checkbox"
             checked={formData.enableNotifications}
             onChange={e => setFormData(prev => ({ ...prev, enableNotifications: e.target.checked }))}
-            className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+            className="w-5 h-5 text-brand-color border-border-default rounded focus:ring-brand-focus"
             data-testid="notifications-checkbox"
             aria-label="notifications-checkbox"
           />
-          <span className="text-sm text-gray-700">{t('medications.enableNotifications')}</span>
+          <span className="text-content-muted text-text-secondary">{t('medications.enableNotifications')}</span>
         </label>
 
         {/* Group Selection */}
@@ -308,14 +345,14 @@ export function MedicationForm({ medication, onClose, onSave, groups = [] }: Med
 
         {/* Notes */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-content-muted font-medium text-text-secondary mb-1">
             {t('medications.notes')}
           </label>
           <textarea
             value={formData.notes}
             onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))}
             rows={3}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            className="w-full px-4 py-2 border border-border-default rounded-control focus:ring-2 focus:ring-brand-focus focus:outline-none text-content"
             placeholder={t('medications.notes')}
             data-testid="notes-textarea"
             aria-label="notes-textarea"
@@ -327,6 +364,7 @@ export function MedicationForm({ medication, onClose, onSave, groups = [] }: Med
           <Button
             type="submit"
             loading={submitting}
+            icon="mdi:content-save"
             className="flex-1"
             data-testid="save-medication-button"
           >
@@ -335,6 +373,7 @@ export function MedicationForm({ medication, onClose, onSave, groups = [] }: Med
           <Button
             type="button"
             variant="secondary"
+            icon="mdi:close"
             onClick={onClose}
             data-testid="cancel-medication-button"
           >

@@ -53,13 +53,13 @@ export function GroupsPage() {
 
       {loading && groups.length === 0 ? (
         <div className="text-center py-12">
-          <Icon icon="mdi:loading" className="animate-spin text-4xl text-indigo-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading...</p>
+          <Icon icon="mdi:loading" className="animate-spin text-4xl text-brand-color mx-auto mb-4" />
+          <p className="text-text-muted">Loading...</p>
         </div>
       ) : groups.length === 0 ? (
         <Card className="text-center py-12">
-          <Icon icon="mdi:folder-multiple-outline" className="text-6xl text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600 text-lg">{t('groups.empty')}</p>
+          <Icon icon="mdi:folder-multiple-outline" className="text-6xl text-text-soft mx-auto mb-4" />
+          <p className="text-text-muted text-lg">{t('groups.empty')}</p>
         </Card>
       ) : (
         <div className="space-y-4">
@@ -67,29 +67,29 @@ export function GroupsPage() {
             <Card key={group.id} className="space-y-4" data-testid="group-card">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-800 mb-1" data-testid="group-name">
+                  <h3 className="text-xl font-bold text-text-primary mb-1" data-testid="group-name">
                     {group.name}
                   </h3>
-                  <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                    <Icon icon="mdi:folder" className="text-indigo-500" />
+                  <div className="flex items-center gap-2 text-sm text-text-muted mb-2">
+                    <Icon icon="mdi:folder" className="text-brand-color" />
                     <span>{group.medications.length} {t('groups.medications')}</span>
                   </div>
                   {group.description && (
-                    <p className="text-sm text-gray-600 mt-2">{group.description}</p>
+                    <p className="text-sm text-text-muted mt-2">{group.description}</p>
                   )}
                 </div>
                 
                 <div className="flex gap-2">
                   <button
                     onClick={() => setEditingGroup(group)}
-                    className="text-gray-400 hover:text-indigo-600 transition-colors"
+                    className="text-text-soft hover:text-brand-color transition-colors"
                     data-testid="edit-group-button"
                   >
                     <Icon icon="mdi:pencil" className="text-xl" />
                   </button>
                   <button
                     onClick={() => handleDelete(group.id)}
-                    className="text-gray-400 hover:text-red-600 transition-colors"
+                    className="text-text-soft hover:text-red-600 transition-colors"
                     data-testid="delete-group-button"
                   >
                     <Icon icon="mdi:delete" className="text-xl" />
@@ -109,13 +109,13 @@ export function GroupsPage() {
 
               {group.medications.length > 0 && (
                 <div className="border-t pt-3">
-                  <p className="text-sm font-medium text-gray-700 mb-2">{t('groups.medications')}:</p>
+                  <p className="text-sm font-medium text-text-secondary mb-2">{t('groups.medications')}:</p>
                   <div className="space-y-2">
                     {group.medications.map((med: any) => (
                       <div key={med.id} className="flex items-center justify-between">
-                        <span className="text-gray-700">{med.name}</span>
+                        <span className="text-text-secondary">{med.name}</span>
                         {med.intakes.length > 0 && (
-                          <span className="text-base font-medium text-indigo-600">
+                          <span className="text-base font-medium text-brand-color">
                             {formatDateTime(med.intakes[0].takenAt)}
                           </span>
                         )}

@@ -14,9 +14,11 @@ import { GroupForm } from './components/group/GroupForm';
 import DbDebug from './pages/DbDebug';
 import NotificationsDebug from './pages/NotificationsDebug';
 import PrintCards from './pages/PrintCards';
+import HelpPage from './pages/HelpPage';
 import { useMedications } from './hooks/useMedications';
 import { useGroups } from './hooks/useGroups';
 import { printCurrentView } from './lib/print';
+import { getMedicationDueInfo } from './lib/medicationDue';
 import { isNativePlatform } from './db';
 import { 
   requestNotificationPermissions, 
@@ -37,8 +39,12 @@ function App() {
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [scrollToMedicationId, setScrollToMedicationId] = useState<string | null>(null);
   const [showMenu, setShowMenu] = useState(false);
-  const [activeView, setActiveView] = useState<'main' | 'print'>('main');
+  const [activeView, setActiveView] = useState<'main' | 'print' | 'help'>('main');
+  const [nowTimestamp, setNowTimestamp] = useState(() => Date.now());
+  const [testNowOverrideMs, setTestNowOverrideMs] = useState<number | null>(null);
   const showDebugUI = import.meta.env.VITE_SHOW_DEBUG_UI === 'true';
+  const quickAddMedicationLabel = t('medications.quickAddLabel');
+  const quickAddGroupLabel = t('groups.quickAddLabel');
 
   /**
    * Initialize notification system on mount
@@ -68,6 +74,43 @@ function App() {
     };
   }, []);
 
+  // Keep due badges fresh over time without user interaction.
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNowTimestamp(Date.now());
+    }, 60_000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  // Debug/E2E hook for deterministic due-time tests without waiting in real time.
+  useEffect(() => {
+    if (!showDebugUI) return;
+
+    const w = window as Window & {
+      __pilltrackerSetNowForTests?: (value: string | number | null) => string;
+    };
+
+    w.__pilltrackerSetNowForTests = (value: string | number | null) => {
+      if (value === null || value === '') {
+        setTestNowOverrideMs(null);
+        return 'OK';
+      }
+
+      const parsed = typeof value === 'number' ? value : Date.parse(String(value));
+      if (Number.isNaN(parsed)) {
+        return 'INVALID_DATE';
+      }
+
+      setTestNowOverrideMs(parsed);
+      return 'OK';
+    };
+
+    return () => {
+      delete w.__pilltrackerSetNowForTests;
+    };
+  }, [showDebugUI]);
+
   /**
    * Format date/time for display
    */
@@ -80,6 +123,28 @@ function App() {
       hour: '2-digit',
       minute: '2-digit',
     }).format(date);
+  };
+
+  /**
+   * Human readable due duration text.
+   */
+  const formatDueLabel = (overdueMs: number) => {
+    const overdueMinutes = Math.floor(overdueMs / 60_000);
+    if (overdueMinutes <= 0) {
+      return t('medications.dueNow');
+    }
+
+    if (overdueMinutes < 60) {
+      return t('medications.dueForMinutes', { count: overdueMinutes });
+    }
+
+    const overdueHours = Math.floor(overdueMinutes / 60);
+    if (overdueHours < 24) {
+      return t('medications.dueForHours', { count: overdueHours });
+    }
+
+    const overdueDays = Math.floor(overdueHours / 24);
+    return t('medications.dueForDays', { count: overdueDays });
   };
 
   /**
@@ -112,6 +177,18 @@ function App() {
   const handleDeleteGroup = async (id: string) => {
     if (confirm(t('confirmations.deleteGroup'))) {
       await deleteGroup(id);
+    }
+  };
+
+  /**
+   * Open Android print dialog for the print cards view.
+   */
+  const handlePrintCards = async () => {
+    try {
+      await printCurrentView('PillTracker');
+    } catch (error) {
+      console.error('[Print] Failed to open print dialog:', error);
+      alert('Druckdialog konnte nicht geöffnet werden.');
     }
   };
 
@@ -202,37 +279,55 @@ function App() {
     const lastIntake = medication.intakes.length > 0 ? medication.intakes[0] : null;
     
     const isHighlighted = scrollToMedicationId === medication.id;
+    const effectiveNowMs = testNowOverrideMs ?? nowTimestamp;
+    const dueInfo = getMedicationDueInfo(medication, new Date(effectiveNowMs));
+    const isDue = dueInfo.isDue;
 
     return (
       <Card 
         key={medication.id} 
-        className={`p-4 transition-all duration-300 ${isHighlighted ? 'ring-4 ring-indigo-500 shadow-lg' : ''}`} 
+        className={`p-4 transition-all duration-300 ${
+          isHighlighted ? 'ring-4 ring-brand-focus shadow-lg' : ''
+        } ${isDue ? 'border-2 border-due-border bg-due-bg shadow-lg' : ''}`} 
         data-testid={`medication-card-${medication.id}`}
       >
         <div className="flex items-start justify-between mb-3">
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <Icon icon="mdi:pill" className="text-indigo-600 text-xl" />
-              <h3 className="text-lg font-semibold text-gray-900" data-testid="medication-name">
+              <Icon icon="mdi:pill" className="text-brand-color text-xl" />
+              <h3 className="text-lg font-semibold text-text-primary break-words [overflow-wrap:anywhere]" data-testid="medication-name">
                 {medication.name}
               </h3>
             </div>
-            <p className="text-sm text-gray-600" data-testid="medication-dosage">
+            <p className="text-sm text-text-muted" data-testid="medication-dosage">
               {medication.dosageAmount} {medication.dosageUnit}
             </p>
             {medication.notes && (
-              <p className="text-sm text-gray-500 mt-1" data-testid="medication-notes">
+              <p className="text-sm text-text-muted mt-1 break-words [overflow-wrap:anywhere]" data-testid="medication-notes">
                 {medication.notes}
               </p>
             )}
             <div className="flex flex-wrap gap-2 mt-2">
-              <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded">
+              <span className="text-xs bg-brand-color-soft text-brand-on-soft px-2 py-1 rounded">
                 {t(`intervals.${medication.intervalType}`)}
               </span>
-              <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
-                {medication.scheduleTimes}
-              </span>
+              {medication.scheduleTimes.map((time, index) => (
+                <span key={`${medication.id}-time-${index}`} className="text-xs bg-surface-2 text-text-primary px-2 py-1 rounded mr-1">
+                  {time}
+                </span>
+              ))}
             </div>
+            {isDue && (
+              <div className="mt-3">
+                <span
+                  className="inline-flex items-center gap-1 rounded-full bg-due-pill-bg px-2.5 py-1 text-xs font-semibold text-due-pill-text"
+                  data-testid={`medication-due-${medication.id}`}
+                >
+                  <Icon icon="mdi:alarm" className="text-sm" />
+                  {formatDueLabel(dueInfo.overdueMs)}
+                </span>
+              </div>
+            )}
           </div>
           
           <div className="flex gap-2 ml-4">
@@ -251,6 +346,7 @@ function App() {
               variant="ghost"
               size="sm"
               icon="mdi:pencil"
+              className="[&>svg]:!text-brand-color hover:[&>svg]:!text-brand-color-strong"
               onClick={() => setEditingMedication(medication)}
               data-testid={`edit-medication-${medication.id}`}
               aria-label={`edit-medication-${medication.id}`}
@@ -259,6 +355,7 @@ function App() {
               variant="ghost"
               size="sm"
               icon="mdi:delete"
+              className="[&>svg]:!text-brand-color hover:[&>svg]:!text-brand-color-strong"
               onClick={() => handleDelete(medication.id)}
               data-testid={`delete-medication-${medication.id}`}
               aria-label={`delete-medication-${medication.id}`}
@@ -268,7 +365,7 @@ function App() {
 
         {lastIntake && (
           <p
-            className="text-base font-semibold text-indigo-600 mb-3 whitespace-pre-line"
+            className="text-base font-semibold text-brand-color mb-3 whitespace-pre-line"
             data-testid="last-intake"
             aria-label="last-intake"
           >
@@ -287,10 +384,10 @@ function App() {
 
   if (loading || groupsLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-app-bg-start via-app-bg-mid to-app-bg-end flex items-center justify-center">
         <div className="text-center">
-          <Icon icon="mdi:loading" className="text-4xl text-indigo-600 animate-spin mb-2" />
-          <p className="text-gray-600">{t('common.loading')}</p>
+          <Icon icon="mdi:loading" className="text-4xl text-brand-color animate-spin mb-2" />
+          <p className="text-text-muted">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -303,110 +400,71 @@ function App() {
         groups={groups}
         language={i18n.language}
         onBack={() => setActiveView('main')}
-        onPrint={() => printCurrentView('PillTracker')}
+        onPrint={handlePrintCards}
       />
     );
   }
 
+  if (activeView === 'help') {
+    return <HelpPage onBack={() => setActiveView('main')} />;
+  }
+
   return (
-    <div className={`min-h-screen pt-safe-area bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 ${showDebugUI ? 'pb-28' : ''}`}>
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="min-h-screen pt-safe-area bg-gradient-to-br from-app-bg-start via-app-bg-mid to-app-bg-end">
+      <div
+        className={`container mx-auto px-4 pt-4 max-w-4xl ${
+          showDebugUI
+            ? 'pb-[calc(var(--pt-safe-bottom)+5rem)]'
+            : 'pb-[calc(var(--pt-safe-bottom)+2.5rem)]'
+        }`}
+      >
         {/* Header */}
-        <header className="mb-8">
-	          <div className="flex items-center justify-between mb-2">
-	            <div className="flex items-center gap-3">
-	              <Icon icon="mdi:pill" className="text-3xl text-indigo-600" />
-	              <h1 className="text-2xl font-bold leading-none text-indigo-600">PillTracker</h1>
-	            </div>
-	            <div className="relative">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  icon="mdi:dots-vertical"
-                  onClick={() => setShowMenu(!showMenu)}
-                  data-testid="menu-button"
-                  title={t('actions.menu')}
-                  aria-label="menu-button"
-                />
-              
-              {/* Menu Drawer */}
-              {showMenu && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setShowMenu(false)}
-                  />
-                  <Card className="absolute right-0 top-12 z-50 p-4 w-64 shadow-xl">
-                    <div className="space-y-2">
-                      <button
-                        onClick={() => {
-                          toggleLanguage();
-                          setShowMenu(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors text-left"
-                        data-testid="menu-language-toggle"
-                        aria-label="menu-language-toggle"
-                      >
-                        <Icon icon={i18n.language === 'de' ? 'flag:gb-4x3' : 'flag:de-4x3'} className="text-2xl" />
-                        <div>
-                          <p className="font-medium text-gray-900">{t('actions.changeLanguage')}</p>
-                          <p className="text-sm text-gray-500">{i18n.language === 'de' ? 'English' : 'Deutsch'}</p>
-                        </div>
-                      </button>
-                      
-                      {medications.length > 0 && (
-                        <button
-                          onClick={() => {
-                            setActiveView('print');
-                            setShowMenu(false);
-                          }}
-                          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors text-left"
-                          data-testid="menu-print-cards"
-                          aria-label="menu-print-cards"
-                        >
-                          <Icon icon="mdi:printer" className="text-2xl text-gray-900" />
-                          <div>
-                            <p className="font-medium text-gray-900">Drucken</p>
-                            <p className="text-sm text-gray-500">Medikamentekarten</p>
-                          </div>
-                        </button>
-                      )}
-                    </div>
-                  </Card>
-                </>
-              )}
+        <header className="sticky top-0 z-30 -mx-4 mb-6 border-b border-brand-color-soft/70 bg-gradient-to-br from-app-bg-start/95 via-app-bg-mid/95 to-app-bg-end/95 px-4 py-3 backdrop-blur shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-0">
+              <Icon icon="mdi:pill" className="text-3xl text-brand-color mr-0.5" />
+              <h1 className="text-2xl font-bold leading-none text-brand-color">PillTracker</h1>
             </div>
+            <Button
+              variant="ghost"
+              size="md"
+              icon="mdi:dots-vertical"
+              onClick={() => setShowMenu(!showMenu)}
+              className="text-brand-color hover:text-brand-color-strong [&>svg]:!text-3xl"
+              data-testid="menu-button"
+              title={t('actions.menu')}
+              aria-label="menu-button"
+            />
           </div>
         </header>
 
         {/* Action Buttons */}
-        <div className="mb-6 flex gap-3 flex-wrap">
+        <div className="mb-6 pt-1 flex gap-3 flex-wrap">
           <Button
-            icon="mdi:pill"
             onClick={() => setShowAddMedicationForm(true)}
             className="flex-1 sm:flex-none"
             data-testid="add-medication-button"
             aria-label="add-medication-button"
           >
-            {t('medications.addNew')}
+            <Icon icon="mdi:plus-circle" className="text-xl" />
+            <span>{quickAddMedicationLabel}</span>
           </Button>
           <Button
-            icon="mdi:folder-multiple"
             onClick={() => setShowAddGroupForm(true)}
-            variant="secondary"
             className="flex-1 sm:flex-none"
             data-testid="add-group-button"
             aria-label="add-group-button"
           >
-            {t('groups.addNew')}
+            <Icon icon="mdi:plus-circle" className="text-xl" />
+            <span>{quickAddGroupLabel}</span>
           </Button>
         </div>
 
         {/* Groups with their medications */}
         {groups.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Icon icon="mdi:folder-multiple" className="text-indigo-600" />
+            <h2 className="text-xl font-semibold text-text-primary mb-4 flex items-center gap-2">
+              <Icon icon="mdi:folder-multiple" className="text-brand-color" />
               {t('groups.title')}
             </h2>
             <div className="space-y-6">
@@ -415,23 +473,23 @@ function App() {
                 const ungroupedForDropdown = medications.filter(med => !med.groupId);
 
                 return (
-                  <Card key={group.id} className="p-5 bg-white border-2 border-indigo-200" data-testid={`group-card-${group.id}`}>
+                  <Card key={group.id} className="p-5 bg-surface-1 border-2 border-brand-border-soft" data-testid={`group-card-${group.id}`}>
                     {/* Group Header */}
                     <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <Icon icon="mdi:folder" className="text-indigo-600 text-2xl" />
-                          <h3 className="text-xl font-bold text-gray-900" data-testid="group-name">
+                          <Icon icon="mdi:folder" className="text-brand-color text-2xl" />
+                          <h3 className="text-xl font-bold text-text-primary break-words [overflow-wrap:anywhere]" data-testid="group-name">
                             {group.name}
                           </h3>
                         </div>
                         {group.description && (
-                          <p className="text-sm text-gray-600 mt-1" data-testid="group-notes">
+                          <p className="text-sm text-text-muted mt-1 break-words [overflow-wrap:anywhere]" data-testid="group-notes">
                             {group.description}
                           </p>
                         )}
                         <div className="flex flex-wrap gap-2 mt-2">
-                          <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                          <span className="text-xs bg-brand-color-soft text-brand-on-soft px-2 py-1 rounded">
                             {groupMedications.length} {t('medications.title')}
                           </span>
                         </div>
@@ -461,7 +519,7 @@ function App() {
                     {ungroupedForDropdown.length > 0 && (
                       <div className="mb-4">
                         <select
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-border-default rounded-control text-sm focus:ring-2 focus:ring-brand-focus focus:border-transparent"
                           onChange={(e) => {
                             if (e.target.value) {
                               handleAssignToGroup(e.target.value, group.id);
@@ -496,11 +554,11 @@ function App() {
                       </div>
                     )}
 
-                    <div className="space-y-3 pl-4 border-l-4 border-indigo-300">
+                    <div className="space-y-3 pl-4 border-l-4 border-brand-border">
                       {groupMedications.length > 0 ? (
                         groupMedications.map(medication => renderMedicationCard(medication, true))
                       ) : (
-                        <p className="text-sm text-gray-500 italic py-4">
+                        <p className="text-sm text-text-muted italic py-4">
                           {t('groups.noMedications')}
                         </p>
                       )}
@@ -515,8 +573,8 @@ function App() {
         {/* Ungrouped Medications */}
         {ungroupedMedications.length > 0 && (
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Icon icon="mdi:pill" className="text-indigo-600" />
+            <h2 className="text-xl font-semibold text-text-primary mb-4 flex items-center gap-2">
+              <Icon icon="mdi:pill" className="text-brand-color" />
               {t('medications.title')}
             </h2>
             <div className="space-y-4">
@@ -526,26 +584,202 @@ function App() {
         )}
 
         {/* Empty State */}
-        {medications.length === 0 && groups.length === 0 && (
+        {medications.length === 0 && (
           <Card className="p-12 text-center">
-            <Icon icon="mdi:pill-off" className="text-6xl text-gray-300 mb-4 mx-auto" />
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">
+            <Icon icon="mdi:pill-off" className="text-6xl text-text-soft mb-4 mx-auto" />
+            <h3 className="text-xl font-semibold text-text-secondary mb-2">
               {t('medications.empty')}
             </h3>
-            <p className="text-gray-500 mb-6">
+            <p className="text-text-muted mb-6">
               {t('medications.emptyDescription')}
             </p>
             <Button
-              icon="mdi:plus"
               onClick={() => setShowAddMedicationForm(true)}
               data-testid="empty-state-add-button"
               aria-label="empty-state-add-button"
             >
-              {t('medications.addFirst')}
+              <Icon icon="mdi:plus-circle" className="text-xl" />
+              <span>{quickAddMedicationLabel}</span>
             </Button>
           </Card>
         )}
       </div>
+
+      {/* App Drawer */}
+      {showMenu && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm animate-fadeIn"
+            onClick={() => setShowMenu(false)}
+          />
+          <aside className="fixed right-0 top-0 z-50 h-screen w-[86%] max-w-sm border-l border-border-subtle bg-surface-1 shadow-2xl">
+            <div className="flex h-full flex-col pt-[calc(var(--pt-safe-top)+0.5rem)] pb-[calc(var(--pt-safe-bottom)+0.75rem)]">
+              <div className="flex items-center justify-between border-b border-border-subtle px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <Icon icon="mdi:menu" className="text-2xl text-brand-color" />
+                  <p className="text-lg font-semibold text-text-primary">{t('actions.menu')}</p>
+                </div>
+                <button
+                  onClick={() => setShowMenu(false)}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-2 hover:text-text-primary"
+                  aria-label="close-menu"
+                >
+                  <Icon icon="mdi:close" className="text-2xl" />
+                </button>
+              </div>
+
+              <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
+                <button
+                  onClick={() => {
+                    setActiveView('main');
+                    setShowAddMedicationForm(true);
+                    setShowMenu(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-control hover:bg-surface-2 transition-colors text-left"
+                  data-testid="menu-add-medication"
+                  aria-label="menu-add-medication"
+                >
+                  <Icon icon="mdi:pill" className="text-2xl text-brand-color shrink-0" />
+                  <div>
+                    <p className="font-medium text-text-primary">+ {quickAddMedicationLabel}</p>
+                    <p className="text-sm text-text-muted">{t('medications.addNew')}</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveView('main');
+                    setShowAddGroupForm(true);
+                    setShowMenu(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-control hover:bg-surface-2 transition-colors text-left"
+                  data-testid="menu-add-group"
+                  aria-label="menu-add-group"
+                >
+                  <Icon icon="mdi:folder-plus" className="text-2xl text-brand-color shrink-0" />
+                  <div>
+                    <p className="font-medium text-text-primary">+ {quickAddGroupLabel}</p>
+                    <p className="text-sm text-text-muted">{t('groups.addNew')}</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    toggleLanguage();
+                    setShowMenu(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-control hover:bg-surface-2 transition-colors text-left"
+                  data-testid="menu-language-toggle"
+                  aria-label="menu-language-toggle"
+                >
+                  <Icon icon="mdi:translate" className="text-2xl text-brand-color shrink-0" />
+                  <div>
+                    <p className="font-medium text-text-primary">{t('actions.changeLanguage')}</p>
+                    <p className="text-sm text-text-muted">{i18n.language === 'de' ? 'English' : 'Deutsch'}</p>
+                  </div>
+                </button>
+
+                {medications.length > 0 && (
+                  <button
+                    onClick={() => {
+                      setActiveView('print');
+                      setShowMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-control hover:bg-surface-2 transition-colors text-left"
+                    data-testid="menu-print-cards"
+                    aria-label="menu-print-cards"
+                  >
+                    <Icon icon="mdi:printer" className="text-2xl text-brand-color shrink-0" />
+                    <div>
+                      <p className="font-medium text-text-primary">{t('actions.print')}</p>
+                      <p className="text-sm text-text-muted">{t('help.printCardsHint')}</p>
+                    </div>
+                  </button>
+                )}
+
+                <div className="my-1 border-t border-border-subtle" />
+
+                <button
+                  onClick={() => {
+                    setActiveView('help');
+                    setShowMenu(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-control hover:bg-surface-2 transition-colors text-left"
+                  data-testid="menu-help"
+                  aria-label="menu-help"
+                >
+                  <Icon icon="mdi:help-circle-outline" className="text-2xl text-brand-color shrink-0" />
+                  <div>
+                    <p className="font-medium text-text-primary">{t('actions.help')}</p>
+                    <p className="text-sm text-text-muted">{t('help.subtitle')}</p>
+                  </div>
+                </button>
+
+                {showDebugUI && (
+                  <>
+                    <div className="my-1 border-t border-border-subtle" />
+
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        setShowDbDebug(true);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-control hover:bg-surface-2 transition-colors text-left"
+                      data-testid="menu-open-db-debug"
+                      aria-label="menu-open-db-debug"
+                    >
+                      <Icon icon="mdi:database" className="text-2xl text-brand-color shrink-0" />
+                      <div>
+                        <p className="font-medium text-text-primary">DB Debug</p>
+                        <p className="text-sm text-text-muted">Database tools</p>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        setShowNotificationsDebug(true);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-control hover:bg-surface-2 transition-colors text-left"
+                      data-testid="menu-open-notifications-debug"
+                      aria-label="menu-open-notifications-debug"
+                    >
+                      <Icon icon="mdi:bell-cog-outline" className="text-2xl text-brand-color shrink-0" />
+                      <div>
+                        <p className="font-medium text-text-primary">Notifications Debug</p>
+                        <p className="text-sm text-text-muted">Notification tools</p>
+                      </div>
+                    </button>
+                  </>
+                )}
+              </nav>
+            </div>
+          </aside>
+        </>
+      )}
+
+      {showDebugUI && (
+        <footer className="fixed bottom-0 left-0 right-0 z-30 border-t border-border-subtle bg-surface-inverse/95 px-4 py-2 text-text-inverse backdrop-blur">
+          <div className="mx-auto flex w-full max-w-4xl items-center justify-center gap-6 pb-[calc(var(--pt-safe-bottom)+0.15rem)] text-sm">
+            <button
+              onClick={() => setShowDbDebug(true)}
+              className="underline underline-offset-2 transition-colors hover:text-text-inverse-muted"
+              data-testid="open-db-debug"
+              aria-label="open-db-debug"
+            >
+              DB Debug
+            </button>
+            <button
+              onClick={() => setShowNotificationsDebug(true)}
+              className="underline underline-offset-2 transition-colors hover:text-text-inverse-muted"
+              data-testid="open-notifications-debug"
+              aria-label="open-notifications-debug"
+            >
+              Notifications
+            </button>
+          </div>
+        </footer>
+      )}
 
       {/* Medication Form Modal */}
       {(showAddMedicationForm || editingMedication) && (
@@ -575,12 +809,12 @@ function App() {
 
       {showDebugUI && showDbDebug && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto">
-            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+          <div className="bg-surface-1 rounded-modal shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto">
+            <div className="sticky top-0 bg-surface-1 border-b border-border-subtle px-6 py-4 flex justify-between items-center">
               <h2 className="text-xl font-bold">Database Debug</h2>
               <button 
                 onClick={() => setShowDbDebug(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-text-muted hover:text-text-secondary"
                 aria-label="db-debug-close"
               >
                 <Icon icon="mdi:close" width={24} />
@@ -594,12 +828,12 @@ function App() {
       {/* Notifications Debug Modal */}
       {showDebugUI && showNotificationsDebug && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto">
-            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+          <div className="bg-surface-1 rounded-modal shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto">
+            <div className="sticky top-0 bg-surface-1 border-b border-border-subtle px-6 py-4 flex justify-between items-center">
               <h2 className="text-xl font-bold">Notifications Debug</h2>
               <button 
                 onClick={() => setShowNotificationsDebug(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-text-muted hover:text-text-secondary"
                 aria-label="notifications-debug-close"
               >
                 <Icon icon="mdi:close" width={24} />
@@ -610,33 +844,6 @@ function App() {
         </div>
       )}
 
-      {showDebugUI && (
-        <footer
-          className="fixed bottom-0 left-0 right-0 bg-gray-800 text-white pt-2 pb-10 px-4 flex justify-center items-center gap-4 text-sm z-40"
-          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 2.5rem)' }}
-        >
-          <span className="flex flex-col items-start leading-tight">
-            <span>PillTracker v1.0</span>
-            <span className="text-[11px] text-gray-300">
-              Build {String(__BUILD_DATE__).replace('T', ' ').slice(0, 16)}
-            </span>
-          </span>
-          <button
-            onClick={() => setShowDbDebug(true)}
-            className="text-blue-300 hover:text-blue-100 underline"
-            aria-label="open-db-debug"
-          >
-            DB Debug
-          </button>
-          <button
-            onClick={() => setShowNotificationsDebug(true)}
-            className="text-green-300 hover:text-green-100 underline"
-            aria-label="open-notifications-debug"
-          >
-            Notifications
-          </button>
-        </footer>
-      )}
     </div>
   );
 }

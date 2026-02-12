@@ -10,7 +10,7 @@ export default function DbDebug() {
   const [result, setResult] = useState<string>('');
 
   if (!isNativePlatform()) {
-    return <div className="p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
+    return <div className="p-6 bg-yellow-50 border border-yellow-200 rounded-control">
       <h2 className="text-xl font-bold text-yellow-800 mb-2">⚠️ Native Platform Required</h2>
       <p className="text-yellow-700">Database is only available on native iOS/Android platforms.</p>
     </div>;
@@ -122,21 +122,21 @@ export default function DbDebug() {
       <h1 className="text-2xl font-bold">🛠️ Database Debug</h1>
       
       <div className="space-y-2">
-        <button onClick={handleInitDb} className="px-4 py-2 bg-blue-500 text-white rounded mr-2" aria-label="db-init">Initialize DB</button>
-        <button onClick={handleInsertSample} className="px-4 py-2 bg-green-500 text-white rounded mr-2" aria-label="db-insert-sample">Insert Sample</button>
-        <button onClick={handleListRows} className="px-4 py-2 bg-purple-500 text-white rounded mr-2" aria-label="db-list-rows">List Rows</button>
-        <button onClick={handleClearTables} className="px-4 py-2 bg-red-500 text-white rounded mr-2" aria-label="db-clear-tables">Clear Tables</button>
-        <button onClick={handleShowMigrations} className="px-4 py-2 bg-gray-500 text-white rounded" aria-label="db-show-migrations">DB Info</button>
+        <button onClick={handleInitDb} className="px-4 py-2 bg-blue-500 text-text-inverse rounded mr-2" aria-label="db-init">Initialize DB</button>
+        <button onClick={handleInsertSample} className="px-4 py-2 bg-green-500 text-text-inverse rounded mr-2" aria-label="db-insert-sample">Insert Sample</button>
+        <button onClick={handleListRows} className="px-4 py-2 bg-purple-500 text-text-inverse rounded mr-2" aria-label="db-list-rows">List Rows</button>
+        <button onClick={handleClearTables} className="px-4 py-2 bg-red-500 text-text-inverse rounded mr-2" aria-label="db-clear-tables">Clear Tables</button>
+        <button onClick={handleShowMigrations} className="px-4 py-2 bg-surface-inverse text-text-inverse rounded-control" aria-label="db-show-migrations">DB Info</button>
       </div>
 
       {status && (
-        <div className="p-4 bg-gray-100 rounded">
+        <div className="p-4 bg-surface-2 rounded">
           <strong>Status:</strong> {status}
         </div>
       )}
 
       {result && (
-        <div className="p-4 bg-gray-50 rounded">
+        <div className="p-4 bg-surface-2 rounded-control">
           <pre className="text-xs overflow-auto max-h-96">{result}</pre>
         </div>
       )}

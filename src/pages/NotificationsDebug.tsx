@@ -41,10 +41,10 @@ export default function NotificationsDebug() {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">
+        <h1 className="text-2xl font-bold text-text-primary mb-2">
           🔔 Notifications Debug
         </h1>
-        <p className="text-gray-600">
+        <p className="text-text-muted">
           Test und Debug-Tools für Benachrichtigungen
         </p>
       </div>
@@ -90,7 +90,7 @@ export default function NotificationsDebug() {
 
       {output && (
         <div
-          className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm whitespace-pre-wrap overflow-x-auto"
+          className="bg-surface-inverse text-green-400 p-4 rounded-control font-mono text-sm whitespace-pre-wrap overflow-x-auto"
           data-testid="notifications-debug-output"
           aria-label="notifications-debug-output"
         >
@@ -98,7 +98,7 @@ export default function NotificationsDebug() {
         </div>
       )}
 
-      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-control">
         <h3 className="font-semibold text-blue-800 mb-2">ℹ️ So funktionieren die Benachrichtigungen:</h3>
         <ul className="text-blue-700 space-y-2 text-sm">
           <li>
@@ -119,7 +119,7 @@ export default function NotificationsDebug() {
         </ul>
       </div>
 
-      <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+      <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-control">
         <h3 className="font-semibold text-yellow-800 mb-2">⚠️ Troubleshooting:</h3>
         <ul className="text-yellow-700 space-y-1 text-sm">
           <li>• Keine Test-Benachrichtigung? → Permissions prüfen</li>

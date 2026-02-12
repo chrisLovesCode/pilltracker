@@ -10,8 +10,8 @@ async function configureAndroidSystemBars() {
     const mod = await import('@capacitor/status-bar');
     // Ensure the WebView is laid out below the Android status bar, and use dark icons.
     await mod.StatusBar.setOverlaysWebView({ overlay: false });
-    await mod.StatusBar.setStyle({ style: mod.Style.Light }); // dark text/icons
-    await mod.StatusBar.setBackgroundColor({ color: '#EEF2FF' });
+    await mod.StatusBar.setStyle({ style: mod.Style.Dark }); // dark text/icons on light background
+    await mod.StatusBar.setBackgroundColor({ color: '#F3F8F6' });
   } catch (e) {
     console.warn('[Main] Failed to configure system bars:', e);
   }

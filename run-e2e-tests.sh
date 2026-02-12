@@ -10,6 +10,7 @@
 # =============================================================================
 
 set -e  # Exit on error
+set -o pipefail
 
 # Colors for output
 RED='\033[0;31m'
@@ -29,6 +30,76 @@ for arg in "$@"; do
         OPEN_REPORT=true
     fi
 done
+
+PREFLIGHT_TIMEOUT_SEC="${PREFLIGHT_TIMEOUT_SEC:-240}"
+TEST_TIMEOUT_SEC="${TEST_TIMEOUT_SEC:-420}"
+
+run_gradle_with_timeout() {
+    local timeout_sec="$1"
+    shift
+
+    local timed_out_file
+    timed_out_file=$(mktemp)
+    echo "0" > "$timed_out_file"
+
+    "$@" &
+    local cmd_pid=$!
+
+    (
+        sleep "$timeout_sec"
+        if kill -0 "$cmd_pid" 2>/dev/null; then
+            echo "1" > "$timed_out_file"
+            kill -TERM "$cmd_pid" 2>/dev/null || true
+            sleep 5
+            kill -KILL "$cmd_pid" 2>/dev/null || true
+        fi
+    ) &
+    local watchdog_pid=$!
+
+    local cmd_exit=0
+    if wait "$cmd_pid"; then
+        cmd_exit=0
+    else
+        cmd_exit=$?
+    fi
+
+    kill "$watchdog_pid" 2>/dev/null || true
+    wait "$watchdog_pid" 2>/dev/null || true
+
+    local timed_out
+    timed_out=$(cat "$timed_out_file")
+    rm -f "$timed_out_file"
+
+    if [ "$timed_out" = "1" ]; then
+        return 124
+    fi
+    return "$cmd_exit"
+}
+
+print_latest_test_artifacts() {
+    local latest_dir
+    latest_dir=$(ls -td app/build/outputs/androidTest-results/connected/debug/*/ 2>/dev/null | head -n 1 || true)
+    if [ -z "$latest_dir" ]; then
+        echo -e "${YELLOW}Keine AndroidTest-Artefakte gefunden.${NC}"
+        return
+    fi
+
+    local test_log="${latest_dir}testlog/test-results.log"
+    local logcat_file
+    logcat_file=$(ls -t "${latest_dir}"logcat-*.txt 2>/dev/null | head -n 1 || true)
+
+    if [ -f "$test_log" ]; then
+        echo -e "\n${BLUE}Instrumentation Log:${NC}"
+        echo -e "${BLUE}  $test_log${NC}"
+        tail -n 60 "$test_log" 2>/dev/null || true
+    fi
+
+    if [ -n "$logcat_file" ]; then
+        echo -e "\n${BLUE}Logcat (latest):${NC}"
+        echo -e "${BLUE}  $logcat_file${NC}"
+        tail -n 80 "$logcat_file" 2>/dev/null || true
+    fi
+}
 
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}  PillTracker E2E Tests${NC}"
@@ -56,9 +127,11 @@ fi
 echo -e "${GREEN}✓ Emulator verbunden ($DEVICE_COUNT device)${NC}\n"
 
 # Best-effort: pre-grant runtime permissions to avoid blocking dialogs (Android 13+).
-DEVICE=$(adb devices | awk '/emulator|device/{print $1; exit}')
+DEVICE=$(adb devices | awk '$2=="device"{print $1; exit}')
 if [ -n "$DEVICE" ]; then
-    adb -s "$DEVICE" shell pm grant com.pilltracker.app android.permission.POST_NOTIFICATIONS 2>/dev/null || true
+    export ANDROID_SERIAL="$DEVICE"
+    echo -e "${BLUE}Using device: $DEVICE${NC}"
+    adb -s "$DEVICE" shell pm grant com.pilltracker.app android.permission.POST_NOTIFICATIONS >/dev/null 2>&1 || true
 fi
 
 if [ "$SKIP_BUILD" = false ]; then
@@ -89,10 +162,14 @@ cd android
 
 # Preflight: run only the DB/UI readiness test first and abort early on failure.
 echo -e "${YELLOW}Preflight: DB init + UI ready...${NC}"
-./gradlew :app:connectedDebugAndroidTest \
+if run_gradle_with_timeout "$PREFLIGHT_TIMEOUT_SEC" \
+  ./gradlew :app:connectedDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.pilltracker.app.PillTrackerE2ETest#test00_preflightDbInit \
-  --quiet 2>&1 | grep -E "(Starting|Tests|FAILED|PASSED|completed|FAILURES|Exception|AssertionError)" || true
-PREFLIGHT_EXIT_CODE=${PIPESTATUS[0]}
+  --console=plain; then
+    PREFLIGHT_EXIT_CODE=0
+else
+    PREFLIGHT_EXIT_CODE=$?
+fi
 
 if [ $PREFLIGHT_EXIT_CODE -ne 0 ]; then
     cd ..
@@ -100,12 +177,12 @@ if [ $PREFLIGHT_EXIT_CODE -ne 0 ]; then
     echo -e "${RED}========================================${NC}"
     echo -e "${RED}  ✗ Preflight FAILED (DB/UI not ready)${NC}"
     echo -e "${RED}========================================${NC}"
-    echo -e "\n${BLUE}JUnit XML (latest):${NC}"
-    LATEST_XML=$(ls -t android/app/build/outputs/androidTest-results/connected/debug/TEST-*.xml 2>/dev/null | head -n 1 || true)
-    if [ -n "$LATEST_XML" ]; then
-        echo -e "${BLUE}  $LATEST_XML${NC}"
-        rg -n "<failure" "$LATEST_XML" 2>/dev/null | head -n 20 || true
+    if [ $PREFLIGHT_EXIT_CODE -eq 124 ]; then
+        echo -e "${RED}Grund: Preflight-Timeout nach ${PREFLIGHT_TIMEOUT_SEC}s${NC}"
     fi
+    cd android
+    print_latest_test_artifacts
+    cd ..
     echo -e "\n${BLUE}Test Report:${NC}"
     echo -e "${BLUE}  file://$(pwd)/android/app/build/reports/androidTests/connected/debug/index.html${NC}\n"
     exit $PREFLIGHT_EXIT_CODE
@@ -113,8 +190,34 @@ fi
 
 echo -e "${GREEN}✓ Preflight PASSED${NC}\n"
 
-./gradlew :app:connectedDebugAndroidTest --quiet 2>&1 | grep -E "(Starting|Tests|FAILED|PASSED|completed|FAILURES|Exception|AssertionError)" || true
-TEST_EXIT_CODE=${PIPESTATUS[0]}
+# Run each test method individually (fail-fast on first failure/timeout).
+TEST_METHODS=(
+  "test01_createMedicationAndTrack"
+  "test02_groupTrackAllUpdatesLastIntake"
+  "test02_openDbInfo"
+  "test03_openNotificationsDebug"
+  "test04_medicationNotificationsScheduleAndFire"
+  "test05_notificationsE2E"
+  "test06_printCardsViewOpens"
+  "test07_dueBadgeReappearsForLaterSlotAfterEarlierTrack"
+)
+
+TEST_EXIT_CODE=0
+FAILED_TEST=""
+for TEST_METHOD in "${TEST_METHODS[@]}"; do
+    echo -e "${YELLOW}Running ${TEST_METHOD}...${NC}"
+    if run_gradle_with_timeout "$TEST_TIMEOUT_SEC" \
+      ./gradlew :app:connectedDebugAndroidTest \
+      -Pandroid.testInstrumentationRunnerArguments.class=com.pilltracker.app.PillTrackerE2ETest#${TEST_METHOD} \
+      --console=plain; then
+        echo -e "${GREEN}✓ ${TEST_METHOD} passed${NC}\n"
+    else
+        TEST_EXIT_CODE=$?
+        FAILED_TEST="$TEST_METHOD"
+        echo -e "${RED}✗ ${TEST_METHOD} failed${NC}\n"
+        break
+    fi
+done
 cd ..
 
 # Parse results
@@ -127,21 +230,15 @@ else
     echo -e "${RED}========================================${NC}"
     echo -e "${RED}  ✗ Some Tests FAILED${NC}"
     echo -e "${RED}========================================${NC}"
-
-    echo -e "\n${BLUE}JUnit XML (latest):${NC}"
-    LATEST_XML=$(ls -t android/app/build/outputs/androidTest-results/connected/debug/TEST-*.xml 2>/dev/null | head -n 1 || true)
-    if [ -n "$LATEST_XML" ]; then
-        echo -e "${BLUE}  $LATEST_XML${NC}"
-        # Print first failure line(s) to console for fast feedback.
-        rg -n "<failure" "$LATEST_XML" 2>/dev/null | head -n 20 || true
+    if [ -n "$FAILED_TEST" ]; then
+        echo -e "${RED}Failed test: ${FAILED_TEST}${NC}"
     fi
-
-    echo -e "\n${BLUE}Logcat (latest):${NC}"
-    LATEST_LOGCAT=$(ls -t android/app/build/outputs/androidTest-results/connected/debug/*/logcat-*.txt 2>/dev/null | head -n 1 || true)
-    if [ -n "$LATEST_LOGCAT" ]; then
-        echo -e "${BLUE}  $LATEST_LOGCAT${NC}"
-        tail -n 60 "$LATEST_LOGCAT" 2>/dev/null || true
+    if [ $TEST_EXIT_CODE -eq 124 ]; then
+        echo -e "${RED}Grund: Test-Timeout nach ${TEST_TIMEOUT_SEC}s${NC}"
     fi
+    cd android
+    print_latest_test_artifacts
+    cd ..
 fi
 
 echo -e "\n${BLUE}Test Report:${NC}"

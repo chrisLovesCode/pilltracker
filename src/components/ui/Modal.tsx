@@ -40,13 +40,13 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
       />
       
       {/* Modal */}
-      <div className="relative bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden animate-slideUp">
+      <div className="relative bg-surface-1 rounded-modal shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden animate-slideUp">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-800">{title}</h2>
+        <div className="flex items-center justify-between p-4 border-b border-border-subtle">
+          <h2 className="text-xl font-bold text-text-primary">{title}</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-text-soft hover:text-text-muted transition-colors"
             aria-label="modal-close"
           >
             <Icon icon="mdi:close" className="text-2xl" />

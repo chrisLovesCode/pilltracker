@@ -66,13 +66,13 @@ export function GroupForm({ group, onClose, onSave }: GroupFormProps) {
         />
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-content-muted font-medium text-text-secondary mb-1">
             {t('medications.notes')}
           </label>
           <textarea
             value={formData.notes || ''}
             onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-border-default rounded-control focus:ring-2 focus:ring-brand-focus focus:border-brand-focus focus:outline-none text-content"
             rows={3}
             placeholder="Optional description"
             data-testid="group-notes-textarea"
@@ -84,6 +84,7 @@ export function GroupForm({ group, onClose, onSave }: GroupFormProps) {
           <Button
             type="button"
             variant="secondary"
+            icon="mdi:close"
             onClick={onClose}
             disabled={submitting}
             className="flex-1"
@@ -94,6 +95,7 @@ export function GroupForm({ group, onClose, onSave }: GroupFormProps) {
           <Button
             type="submit"
             variant="primary"
+            icon="mdi:content-save"
             disabled={submitting}
             className="flex-1"
             data-testid="save-group-button"
