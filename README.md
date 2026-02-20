@@ -4,12 +4,6 @@ Offline-first Medikamenten-Tracking-App (React + Capacitor + native SQLite).
 
 Status: **Alpha / Testing** (Schema und Features koennen sich noch stark aendern; DB-Updates laufen inkrementell ueber Migrationen).
 
-## Status Work in progress
-
-## ToDos
-
-- UI Refinement
-- Medikamentenkarte Druck fixen
 
 ## Stack
 
