@@ -4,8 +4,10 @@
  * Handles scheduling and managing medication reminder notifications
  * using Capacitor Local Notifications plugin.
  */
-import { LocalNotifications, ScheduleOptions } from '@capacitor/local-notifications';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import type { Medication } from '../../types';
+import i18n from '../i18n';
+import { translateDosageUnit } from '../dosage';
 
 function hashToU32(input: string): number {
   // Deterministic 32-bit hash (djb2). Good enough for stable notification IDs.
@@ -109,6 +111,11 @@ export async function scheduleMedicationNotifications(medication: Medication): P
 
     const times = parseScheduleTimes(medication.scheduleTimes);
     const scheduleDays = medication.scheduleDays || [1, 2, 3, 4, 5, 6, 0]; // Default: every day
+    const translatedUnit = translateDosageUnit(medication.dosageUnit, i18n.t.bind(i18n));
+    const language = (i18n.resolvedLanguage || i18n.language || 'en').toLowerCase();
+    const fallbackBody = language.startsWith('de')
+      ? `Zeit für ${medication.dosageAmount}${translatedUnit} ${medication.name}`
+      : `Time for ${medication.dosageAmount}${translatedUnit} ${medication.name}`;
     
     console.log(`[Notifications] Scheduling for medication "${medication.name}"`);
     console.log(`[Notifications] Days: ${scheduleDays.join(', ')} (0=Sun, 1=Mon, ..., 6=Sat)`);
@@ -147,7 +154,12 @@ export async function scheduleMedicationNotifications(medication: Medication): P
         notifications.push({
           id: notificationId,
           title: `💊 ${medication.name}`,
-          body: `Zeit für deine Medikation: ${medication.dosageAmount} ${medication.dosageUnit}`,
+          body: i18n.t('medications.notificationBody', {
+            dosage: medication.dosageAmount,
+            unit: translatedUnit,
+            name: medication.name,
+            defaultValue: fallbackBody,
+          }),
           schedule: {
             at: date,
             repeats: true,

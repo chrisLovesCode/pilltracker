@@ -4,6 +4,7 @@
  */
 import { useState } from 'react';
 import { initDb, isDbInitialized, isNativePlatform, getDatabase } from '../db';
+import { DB_VERSION, RAW_MIGRATIONS } from '../db/migrations';
 
 export default function DbDebug() {
   const [status, setStatus] = useState<string>('');
@@ -109,7 +110,11 @@ export default function DbDebug() {
 
       setStatus('✅ DB info retrieved');
       setResult(
-        'user_version:\n' +
+        'Configured target version:\n' +
+          DB_VERSION +
+          '\n\nConfigured migrations:\n' +
+          JSON.stringify(RAW_MIGRATIONS.map(m => ({ toVersion: m.toVersion, name: m.name })), null, 2) +
+          '\n\nuser_version:\n' +
           JSON.stringify(version.values || [], null, 2) +
           '\n\nTables:\n' +
           JSON.stringify(tables.values || [], null, 2)

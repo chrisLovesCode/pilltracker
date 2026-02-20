@@ -11,6 +11,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   icon?: string;
+  iconClassName?: string;
   loading?: boolean;
   children?: ReactNode;
 }
@@ -22,6 +23,7 @@ export function Button({
   variant = 'primary', 
   size = 'md',
   icon,
+  iconClassName = '',
   loading = false,
   children,
   className = '',
@@ -56,7 +58,7 @@ export function Button({
       {loading ? (
         <Icon icon="mdi:loading" className="animate-spin text-xl" />
       ) : icon ? (
-        <Icon icon={icon} className="text-xl" />
+        <Icon icon={icon} className={`text-xl ${iconClassName}`.trim()} />
       ) : null}
       {children}
     </button>

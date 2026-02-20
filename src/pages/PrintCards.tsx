@@ -1,6 +1,8 @@
 import { Icon } from '@iconify/react';
+import { useTranslation } from 'react-i18next';
 import { Button, Card } from '../components/ui';
 import type { Group, Medication } from '../types';
+import { translateDosageUnit } from '../lib/dosage';
 
 type Props = {
   medications: Medication[];
@@ -39,6 +41,7 @@ function formatScheduleDaysArray(scheduleDays: number[] | null | undefined) {
 
 export default function PrintCards(props: Props) {
   const { medications, groups, language, onBack, onPrint } = props;
+  const { t } = useTranslation();
 
   const ungrouped = medications.filter(m => !m.groupId);
   const grouped = groups
@@ -61,7 +64,7 @@ export default function PrintCards(props: Props) {
               <h3 className="text-lg font-bold text-text-primary break-words [overflow-wrap:anywhere]">{m.name}</h3>
             </div>
             <p className="text-sm text-text-secondary mt-0.5">
-              {m.dosageAmount} {m.dosageUnit}
+              {m.dosageAmount} {translateDosageUnit(m.dosageUnit, t)}
             </p>
           </div>
         </div>

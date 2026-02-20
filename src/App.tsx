@@ -19,6 +19,7 @@ import { useMedications } from './hooks/useMedications';
 import { useGroups } from './hooks/useGroups';
 import { printCurrentView } from './lib/print';
 import { getMedicationDueInfo } from './lib/medicationDue';
+import { translateDosageUnit } from './lib/dosage';
 import { isNativePlatform } from './db';
 import { 
   requestNotificationPermissions, 
@@ -125,6 +126,35 @@ function App() {
     }).format(date);
   };
 
+  const formatRelativeLastTaken = (dateString: string, referenceTimeMs: number) => {
+    const takenAtMs = new Date(dateString).getTime();
+    if (Number.isNaN(takenAtMs)) {
+      return t('medications.neverTaken');
+    }
+
+    const diffMs = Math.max(0, referenceTimeMs - takenAtMs);
+    const diffMinutes = Math.floor(diffMs / 60_000);
+    if (diffMinutes < 1) {
+      return t('medications.lastTakenJustNow');
+    }
+    if (diffMinutes < 60) {
+      return t('medications.lastTakenMinutes', { count: diffMinutes });
+    }
+
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) {
+      return t('medications.lastTakenHours', { count: diffHours });
+    }
+
+    const diffDays = Math.floor(diffHours / 24);
+    return t('medications.lastTakenDays', { count: diffDays });
+  };
+
+  const isGermanLanguage = () => {
+    const language = (i18n.resolvedLanguage || i18n.language || 'en').toLowerCase();
+    return language.startsWith('de');
+  };
+
   /**
    * Human readable due duration text.
    */
@@ -150,9 +180,9 @@ function App() {
   /**
    * Toggle language between German and English
    */
-  const toggleLanguage = () => {
-    const newLang = i18n.language === 'de' ? 'en' : 'de';
-    i18n.changeLanguage(newLang);
+  const toggleLanguage = async () => {
+    const newLang = isGermanLanguage() ? 'en' : 'de';
+    await i18n.changeLanguage(newLang);
   };
 
   /**
@@ -282,6 +312,8 @@ function App() {
     const effectiveNowMs = testNowOverrideMs ?? nowTimestamp;
     const dueInfo = getMedicationDueInfo(medication, new Date(effectiveNowMs));
     const isDue = dueInfo.isDue;
+    const translatedUnit = translateDosageUnit(medication.dosageUnit, t);
+    const relativeLastTaken = lastIntake ? formatRelativeLastTaken(lastIntake.takenAt, effectiveNowMs) : null;
 
     return (
       <Card 
@@ -291,19 +323,19 @@ function App() {
         } ${isDue ? 'border-2 border-due-border bg-due-bg shadow-lg' : ''}`} 
         data-testid={`medication-card-${medication.id}`}
       >
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div className="flex-1 min-w-0 pr-1">
             <div className="flex items-center gap-2 mb-1">
               <Icon icon="mdi:pill" className="text-brand-color text-xl" />
-              <h3 className="text-lg font-semibold text-text-primary break-words [overflow-wrap:anywhere]" data-testid="medication-name">
+              <h3 className="max-w-full text-lg font-semibold text-text-primary break-all" data-testid="medication-name">
                 {medication.name}
               </h3>
             </div>
             <p className="text-sm text-text-muted" data-testid="medication-dosage">
-              {medication.dosageAmount} {medication.dosageUnit}
+              {medication.dosageAmount} {translatedUnit}
             </p>
             {medication.notes && (
-              <p className="text-sm text-text-muted mt-1 break-words [overflow-wrap:anywhere]" data-testid="medication-notes">
+              <p className="text-sm text-text-muted mt-1 break-all" data-testid="medication-notes">
                 {medication.notes}
               </p>
             )}
@@ -330,12 +362,14 @@ function App() {
             )}
           </div>
           
-          <div className="flex gap-2 ml-4">
+          <div className="ml-2 flex shrink-0 items-center gap-0.5">
             {inGroup && (
               <Button
                 variant="ghost"
                 size="sm"
                 icon="mdi:folder-remove"
+                iconClassName="!text-brand-color"
+                className="!px-1.5 !py-1 !text-brand-color hover:!text-brand-color-strong"
                 onClick={() => handleRemoveFromGroup(medication.id)}
                 title={t('actions.removeFromGroup')}
                 data-testid={`remove-from-group-${medication.id}`}
@@ -346,7 +380,8 @@ function App() {
               variant="ghost"
               size="sm"
               icon="mdi:pencil"
-              className="[&>svg]:!text-brand-color hover:[&>svg]:!text-brand-color-strong"
+              iconClassName="!text-brand-color"
+              className="!px-1.5 !py-1 !text-brand-color hover:!text-brand-color-strong"
               onClick={() => setEditingMedication(medication)}
               data-testid={`edit-medication-${medication.id}`}
               aria-label={`edit-medication-${medication.id}`}
@@ -355,7 +390,8 @@ function App() {
               variant="ghost"
               size="sm"
               icon="mdi:delete"
-              className="[&>svg]:!text-brand-color hover:[&>svg]:!text-brand-color-strong"
+              iconClassName="!text-brand-color"
+              className="!px-1.5 !py-1 !text-brand-color hover:!text-brand-color-strong"
               onClick={() => handleDelete(medication.id)}
               data-testid={`delete-medication-${medication.id}`}
               aria-label={`delete-medication-${medication.id}`}
@@ -364,13 +400,18 @@ function App() {
         </div>
 
         {lastIntake && (
-          <p
-            className="text-base font-semibold text-brand-color mb-3 whitespace-pre-line"
+          <div
+            className="mb-3"
             data-testid="last-intake"
             aria-label="last-intake"
           >
-            {`${t('medications.lastTaken')}:\n${formatDateTime(lastIntake.takenAt)}`}
-          </p>
+            <p className="text-base font-semibold text-brand-color">
+              {`${t('medications.lastTaken')}: ${relativeLastTaken}`}
+            </p>
+            <p className="mt-0.5 text-xs text-text-muted">
+              {formatDateTime(lastIntake.takenAt)}
+            </p>
+          </div>
         )}
 
         <SlideToTrack
@@ -479,12 +520,12 @@ function App() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <Icon icon="mdi:folder" className="text-brand-color text-2xl" />
-                          <h3 className="text-xl font-bold text-text-primary break-words [overflow-wrap:anywhere]" data-testid="group-name">
+                          <h3 className="max-w-full text-xl font-bold text-text-primary break-all" data-testid="group-name">
                             {group.name}
                           </h3>
                         </div>
                         {group.description && (
-                          <p className="text-sm text-text-muted mt-1 break-words [overflow-wrap:anywhere]" data-testid="group-notes">
+                          <p className="text-sm text-text-muted mt-1 break-all" data-testid="group-notes">
                             {group.description}
                           </p>
                         )}
@@ -495,11 +536,13 @@ function App() {
                         </div>
                       </div>
 
-                      <div className="flex gap-2 ml-4">
+                      <div className="ml-2 flex shrink-0 items-center gap-0.5">
                         <Button
                           variant="ghost"
                           size="sm"
                           icon="mdi:pencil"
+                          iconClassName="!text-brand-color"
+                          className="!px-1.5 !py-1 !text-brand-color hover:!text-brand-color-strong"
                           onClick={() => setEditingGroup(group)}
                           data-testid={`edit-group-${group.id}`}
                           aria-label={`edit-group-${group.id}`}
@@ -508,6 +551,8 @@ function App() {
                           variant="ghost"
                           size="sm"
                           icon="mdi:delete"
+                          iconClassName="!text-brand-color"
+                          className="!px-1.5 !py-1 !text-brand-color hover:!text-brand-color-strong"
                           onClick={() => handleDeleteGroup(group.id)}
                           data-testid={`delete-group-${group.id}`}
                           aria-label={`delete-group-${group.id}`}
@@ -665,7 +710,7 @@ function App() {
 
                 <button
                   onClick={() => {
-                    toggleLanguage();
+                    void toggleLanguage();
                     setShowMenu(false);
                   }}
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-control hover:bg-surface-2 transition-colors text-left"
@@ -675,7 +720,7 @@ function App() {
                   <Icon icon="mdi:translate" className="text-2xl text-brand-color shrink-0" />
                   <div>
                     <p className="font-medium text-text-primary">{t('actions.changeLanguage')}</p>
-                    <p className="text-sm text-text-muted">{i18n.language === 'de' ? 'English' : 'Deutsch'}</p>
+                    <p className="text-sm text-text-muted">{isGermanLanguage() ? 'English' : 'Deutsch'}</p>
                   </div>
                 </button>
 

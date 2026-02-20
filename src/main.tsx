@@ -8,10 +8,15 @@ import App from './App.tsx';
 async function configureAndroidSystemBars() {
   try {
     const mod = await import('@capacitor/status-bar');
+    const core = await import('@capacitor/core');
     // Ensure the WebView is laid out below the Android status bar, and use dark icons.
     await mod.StatusBar.setOverlaysWebView({ overlay: false });
-    await mod.StatusBar.setStyle({ style: mod.Style.Dark }); // dark text/icons on light background
+    // Capacitor "LIGHT" means dark foreground icons/text on a light background.
+    await mod.StatusBar.setStyle({ style: mod.Style.Light });
     await mod.StatusBar.setBackgroundColor({ color: '#F3F8F6' });
+
+    // Also force navigation-bar/system-bar icon style (important on real devices in dark mode).
+    await core.SystemBars.setStyle({ style: core.SystemBarsStyle.Light });
   } catch (e) {
     console.warn('[Main] Failed to configure system bars:', e);
   }

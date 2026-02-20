@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@iconify/react';
 import { Modal, Input, Select, Button } from '../ui';
 import type { Medication, MedicationFormData, Group } from '../../types';
+import { normalizeDosageUnitValue } from '../../lib/dosage';
 
 interface MedicationFormProps {
   medication?: Medication | null;
@@ -45,7 +46,7 @@ export function MedicationForm({ medication, onClose, onSave, groups = [] }: Med
       setFormData({
         name: medication.name,
         dosageAmount: medication.dosageAmount,
-        dosageUnit: medication.dosageUnit,
+        dosageUnit: normalizeDosageUnitValue(medication.dosageUnit),
         notes: medication.notes || '',
         enableNotifications: medication.enableNotifications,
         intervalType: medication.intervalType,
@@ -64,7 +65,11 @@ export function MedicationForm({ medication, onClose, onSave, groups = [] }: Med
     setSubmitting(true);
 
     try {
-      const success = await onSave(formData, medication?.id);
+      const normalizedData: MedicationFormData = {
+        ...formData,
+        dosageUnit: normalizeDosageUnitValue(formData.dosageUnit),
+      };
+      const success = await onSave(normalizedData, medication?.id);
       if (success) {
         onClose();
       }

@@ -370,20 +370,29 @@ class PillTrackerScreenshotTest {
 
             val outPath = "/sdcard/Download/pilltracker-screenshots"
             device.executeShellCommand("mkdir -p ${outPath}")
-            device.executeShellCommand("rm -f ${outPath}/android-home.png ${outPath}/android-edit-medication.png")
+            device.executeShellCommand("rm -f ${outPath}/android-home.png ${outPath}/android-create-medication.png")
             device.executeShellCommand("screencap -p ${outPath}/android-home.png")
 
-            // Open edit view for ibuprofen.
-            val ibuId = medicationIdByName("Ibuprofen", device, 45000)
-            clickCss("[aria-label='edit-medication-${ibuId}']", device, 60000)
+            // Open create modal and fill with representative sample content.
+            clickCss("[aria-label='add-medication-button']", device, 60000)
             waitForCss("[aria-label='medication-name-input']", device, 60000)
+            setInputValueByJs("[aria-label='medication-name-input']", "Aspirin Complex", device)
+            setInputValueByJs("[aria-label='dosage-amount-input']", "3", device)
+            setSelectValueByJs("[aria-label='dosage-unit-select']", "g", device)
+            setInputValueByJs("[aria-label='schedule-time-0']", "08:00", device)
+            clickCss("[aria-label='add-time-button']", device, 60000)
+            waitForCss("[aria-label='schedule-time-1']", device, 60000)
+            setInputValueByJs("[aria-label='schedule-time-1']", "12:00", device)
+            setCheckboxByJs("[aria-label='notifications-checkbox']", true, device)
+            setSelectValueByJs("[aria-label='group-select']", gid, device)
+            setInputValueByJs("[aria-label='notes-textarea']", "Take with water after breakfast.", device)
             device.waitForIdle(1000)
 
-            device.executeShellCommand("screencap -p ${outPath}/android-edit-medication.png")
+            device.executeShellCommand("screencap -p ${outPath}/android-create-medication.png")
 
             // Emit paths to logcat output (useful when pulling).
             println("SCREENSHOT_HOME=${outPath}/android-home.png")
-            println("SCREENSHOT_EDIT=${outPath}/android-edit-medication.png")
+            println("SCREENSHOT_CREATE=${outPath}/android-create-medication.png")
         } finally {
             scenario.close()
         }

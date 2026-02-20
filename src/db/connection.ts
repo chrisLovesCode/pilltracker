@@ -4,15 +4,17 @@
  */
 
 import { Capacitor } from '@capacitor/core';
-import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacitor-community/sqlite';
-import schemaSql from './schema.sql?raw';
+import {
+  CapacitorSQLite,
+  SQLiteConnection,
+  SQLiteDBConnection,
+  capSQLiteVersionUpgrade,
+} from '@capacitor-community/sqlite';
+import { DB_VERSION, RAW_MIGRATIONS } from './migrations';
 
 // NOTE: capacitor-community/sqlite expects the database name WITHOUT ".db"
 // (it manages the file extension internally).
 const DB_NAME = 'pilltracker';
-// Alpha: schema changes are allowed to reset the DB completely.
-// Bump this number whenever `schema.sql` changes.
-const SCHEMA_VERSION = 20260210;
 
 let sqliteConnection: SQLiteConnection | null = null;
 let db: SQLiteDBConnection | null = null;
@@ -49,6 +51,7 @@ export async function initDb(): Promise<void> {
 
     // Create SQLite connection
     sqliteConnection = new SQLiteConnection(CapacitorSQLite);
+    await registerUpgradeStatements(sqliteConnection);
     
     // Check if connection exists
     const ret = await sqliteConnection.checkConnectionsConsistency();
@@ -61,16 +64,13 @@ export async function initDb(): Promise<void> {
         DB_NAME,
         false,
         'no-encryption',
-        1,
+        DB_VERSION,
         false
       );
     }
 
     await db.open();
-    console.log('[DB] ✅ SQLite connection opened');
-
-    // Alpha schema management: ensure schema matches and reset if needed.
-    await ensureSchema();
+    console.log(`[DB] ✅ SQLite connection opened (target version ${DB_VERSION})`);
 
     isInitialized = true;
     console.log('[DB] ✅ Database initialized successfully');
@@ -120,65 +120,52 @@ export async function closeDb(): Promise<void> {
   console.log('[DB] Connection closed');
 }
 
-async function ensureSchema(): Promise<void> {
-  if (!db) throw new Error('Database not initialized');
-
-  const currentVersion = await getUserVersion(db);
-  if (currentVersion !== SCHEMA_VERSION) {
-    console.warn(`[DB] Schema version mismatch (have=${currentVersion}, want=${SCHEMA_VERSION}). Resetting DB (alpha).`);
-    await resetDatabase();
-
-    // Re-open fresh DB after delete.
-    if (!sqliteConnection) {
-      sqliteConnection = new SQLiteConnection(CapacitorSQLite);
-    }
-    db = await sqliteConnection.createConnection(DB_NAME, false, 'no-encryption', 1, false);
-    await db.open();
-    console.log('[DB] ✅ SQLite connection opened (after reset)');
+async function registerUpgradeStatements(connection: SQLiteConnection): Promise<void> {
+  const upgrades = buildUpgradeStatements();
+  if (upgrades.length === 0) {
+    throw new Error('[DB] No upgrade statements configured');
   }
 
-  // Apply baseline schema (idempotent thanks to IF NOT EXISTS).
-  const statements = splitSqlStatements(schemaSql);
-  for (const statement of statements) {
-    if (statement.trim()) {
-      await db.execute(statement);
-    }
-  }
-
-  await db.execute(`PRAGMA user_version = ${SCHEMA_VERSION};`);
+  await connection.addUpgradeStatement(DB_NAME, upgrades);
+  console.log(`[DB] Registered ${upgrades.length} upgrade step(s) up to v${DB_VERSION}`);
 }
 
-async function getUserVersion(conn: SQLiteDBConnection): Promise<number> {
-  try {
-    const res = await conn.query('PRAGMA user_version;');
-    const v = (res.values?.[0] as any)?.user_version;
-    return typeof v === 'number' ? v : 0;
-  } catch {
-    return 0;
+function buildUpgradeStatements(): capSQLiteVersionUpgrade[] {
+  const sorted = [...RAW_MIGRATIONS].sort((a, b) => a.toVersion - b.toVersion);
+  let previousVersion = 0;
+
+  const upgrades: capSQLiteVersionUpgrade[] = [];
+  for (const migration of sorted) {
+    if (migration.toVersion <= previousVersion) {
+      throw new Error(
+        `[DB] Migration versions must be strictly increasing (got ${migration.toVersion} after ${previousVersion})`,
+      );
+    }
+
+    const statements = splitMigrationStatements(migration.sql);
+    if (statements.length === 0) {
+      throw new Error(`[DB] Migration ${migration.name} (v${migration.toVersion}) has no SQL statements`);
+    }
+
+    upgrades.push({
+      toVersion: migration.toVersion,
+      statements,
+    });
+    previousVersion = migration.toVersion;
   }
+
+  return upgrades;
 }
 
-async function resetDatabase(): Promise<void> {
-  // Best-effort cleanup: close connections then delete DB file.
-  try {
-    if (db) await db.close();
-  } catch {
-    // ignore
+function splitMigrationStatements(sql: string): string[] {
+  if (sql.includes('--> statement-breakpoint')) {
+    return sql
+      .split(/--> statement-breakpoint/g)
+      .map(chunk => chunk.trim())
+      .filter(Boolean);
   }
-  try {
-    if (sqliteConnection) await sqliteConnection.closeConnection(DB_NAME, false);
-  } catch {
-    // ignore
-  }
-  db = null;
-  isInitialized = false;
 
-  try {
-    await CapacitorSQLite.deleteDatabase({ database: DB_NAME, readonly: false });
-  } catch (e) {
-    // ignore "does not exist" and similar errors
-    console.warn('[DB] deleteDatabase failed (ignored):', e);
-  }
+  return splitSqlStatements(sql);
 }
 
 /**

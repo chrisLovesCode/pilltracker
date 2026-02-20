@@ -324,20 +324,40 @@ class PillTrackerE2ETest {
     }
 
     private fun waitForCss(selector: String, timeoutMs: Long = 30000) {
-        retryWebAction("waiting for CSS $selector", timeoutMs) {
+        val script = """
+            var sel = ${JSONObject.quote(selector)};
+            return document.querySelector(sel) ? "present" : "absent";
+        """.trimIndent()
+
+        retryWebAction("waiting for CSS $selector", timeoutMs, failFastOnNullAtomAfter = 12) {
             onWebView(withId(webViewId()))
                 .forceJavascriptEnabled()
-                .withElement(findElement(Locator.CSS_SELECTOR, selector))
-                .check(webMatches(getText(), any(String::class.java)))
+                .check(
+                    webMatches(
+                        Atoms.script(script, Atoms.castOrDie(String::class.java)),
+                        equalTo("present")
+                    )
+                )
         }
     }
 
     private fun waitForCssTextContains(selector: String, needle: String, timeoutMs: Long = 30000) {
-        retryWebAction("waiting for CSS text $selector contains \"$needle\"", timeoutMs) {
+        val script = """
+            var sel = ${JSONObject.quote(selector)};
+            var el = document.querySelector(sel);
+            if (!el) return "";
+            return (el.innerText || el.textContent || "").trim();
+        """.trimIndent()
+
+        retryWebAction("waiting for CSS text $selector contains \"$needle\"", timeoutMs, failFastOnNullAtomAfter = 12) {
             onWebView(withId(webViewId()))
                 .forceJavascriptEnabled()
-                .withElement(findElement(Locator.CSS_SELECTOR, selector))
-                .check(webMatches(getText(), containsString(needle)))
+                .check(
+                    webMatches(
+                        Atoms.script(script, Atoms.castOrDie(String::class.java)),
+                        containsString(needle)
+                    )
+                )
         }
     }
 
@@ -485,6 +505,21 @@ class PillTrackerE2ETest {
         val id = captureStringFromScript(script, timeoutMs).trim()
         if (id.isEmpty()) throw AssertionError("Failed to resolve medication id by name: $name")
         return id
+    }
+
+    private fun pad2(value: Int): String = value.toString().padStart(2, '0')
+
+    private fun localIsoString(cal: Calendar): String {
+        val year = cal.get(Calendar.YEAR)
+        val month = cal.get(Calendar.MONTH) + 1
+        val day = cal.get(Calendar.DAY_OF_MONTH)
+        val hour = cal.get(Calendar.HOUR_OF_DAY)
+        val minute = cal.get(Calendar.MINUTE)
+        return "${year}-${pad2(month)}-${pad2(day)}T${pad2(hour)}:${pad2(minute)}:00"
+    }
+
+    private fun hhmm(cal: Calendar): String {
+        return "${pad2(cal.get(Calendar.HOUR_OF_DAY))}:${pad2(cal.get(Calendar.MINUTE))}"
     }
 
     private fun setNowOverrideForTests(value: String?) {
@@ -803,24 +838,57 @@ class PillTrackerE2ETest {
 
         val medName = "Due Slots Med"
 
-        // Create a medication with two daily slots: 08:00 and 16:00.
+        val now = Calendar.getInstance()
+        now.set(Calendar.SECOND, 0)
+        now.set(Calendar.MILLISECOND, 0)
+
+        val firstSlotCal = (now.clone() as Calendar)
+        if (firstSlotCal.get(Calendar.HOUR_OF_DAY) == 0 && firstSlotCal.get(Calendar.MINUTE) < 15) {
+            // Keep slot on the same day for due-calculation logic.
+            firstSlotCal.set(Calendar.HOUR_OF_DAY, 0)
+            firstSlotCal.set(Calendar.MINUTE, 0)
+        } else {
+            firstSlotCal.add(Calendar.MINUTE, -15)
+        }
+        firstSlotCal.set(Calendar.SECOND, 0)
+        firstSlotCal.set(Calendar.MILLISECOND, 0)
+
+        val firstDueCheck = localIsoString(now)
+        val firstSlot = hhmm(firstSlotCal)
+        val secondSlotCal = (now.clone() as Calendar).apply {
+            add(Calendar.MINUTE, 90)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val secondSlot = hhmm(secondSlotCal)
+        val secondDueCheckCal = (secondSlotCal.clone() as Calendar).apply {
+            add(Calendar.MINUTE, 10)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val secondDueCheck = localIsoString(secondDueCheckCal)
+        println("[test07] firstSlot=$firstSlot secondSlot=$secondSlot firstDueCheck=$firstDueCheck secondDueCheck=$secondDueCheck")
+
+        // Create a medication with two slots:
+        // - one shortly before current time
+        // - one 90 minutes later to verify re-due logic after tracking the first slot.
         clickCss("[aria-label='add-medication-button']")
         setInputValueByJs("[aria-label='medication-name-input']", medName)
         setInputValueByJs("[aria-label='dosage-amount-input']", "1")
         setCheckboxByJs("[aria-label='notifications-checkbox']", false)
         clickCss("[aria-label='add-time-button']")
-        setInputValueByJs("[aria-label='schedule-time-0']", "08:00")
-        setInputValueByJs("[aria-label='schedule-time-1']", "16:00")
+        setInputValueByJs("[aria-label='schedule-time-0']", firstSlot)
+        setInputValueByJs("[aria-label='schedule-time-1']", secondSlot)
         clickCss("[aria-label='save-medication-button']", 45000)
         waitForCss("[aria-label^='track-medication-']", 45000)
 
         val medId = medicationIdByName(medName, 45000)
 
-        // At 08:10 with no intake yet, badge must be visible (first slot due).
-        setNowOverrideForTests("2026-02-12T08:10:00")
+        // At first due-check time with no intake yet, badge must be visible.
+        setNowOverrideForTests(firstDueCheck)
         waitForCss("[data-testid='medication-due-${medId}']", 45000)
 
-        // Track first slot.
+        // Track first due slot.
         swipeOnWebView(
             startCss = "[aria-label='track-medication-${medId}-handle']",
             endCss = "[aria-label='track-medication-${medId}']"
@@ -828,8 +896,8 @@ class PillTrackerE2ETest {
         waitForCss("[data-testid='medication-card-${medId}'] [aria-label='last-intake']", 45000)
         waitForCssAbsent("[data-testid='medication-due-${medId}']", 45000)
 
-        // Later same day at 16:10, due badge must reappear for second slot.
-        setNowOverrideForTests("2026-02-12T16:10:00")
+        // At the later due-check time, due badge must reappear for the second slot.
+        setNowOverrideForTests(secondDueCheck)
         waitForCss("[data-testid='medication-due-${medId}']", 45000)
         waitForCss("[data-testid='medication-card-${medId}'] [aria-label='last-intake']", 45000)
 
