@@ -2,7 +2,7 @@
 
 Offline-first Medikamenten-Tracking-App (React + Capacitor + native SQLite).
 
-Status: **Alpha / Testing** (Schema und Features koennen sich noch stark aendern; Daten koennen bei Updates zurueckgesetzt werden).
+Status: **Alpha / Testing** (Schema und Features koennen sich noch stark aendern; DB-Updates laufen inkrementell ueber Migrationen).
 
 ## Status Work in progress
 
@@ -35,15 +35,15 @@ Status: **Alpha / Testing** (Schema und Features koennen sich noch stark aendern
 ## APK (schnell testen)
 
 Eine aktuelle Test-APK liegt unter:
-`Latest Android Release/pilltracker_v0.0.1.apk`
+`Latest Android Release/pilltracker_v1.0.0.apk`
 
 ## Screenshots
 
-Startseite:
+Medikamenten-Listing (Beispieldaten):
 ![Startseite](screenshots/android-home.png)
 
-Medikament bearbeiten:
-![Medikament bearbeiten](screenshots/android-edit-medication.png)
+Neues Medikament anlegen (ausgefuelltes Formular):
+![Medikament anlegen](screenshots/android-create-medication.png)
 
 ## Entwicklung (Web)
 
@@ -80,4 +80,4 @@ Die Instrumentation-Tests sind hier:
 ```
 
 Ergebnis:
-`Latest Android Release/pilltracker_v0.0.1.apk`
+`Latest Android Release/pilltracker_v1.0.0.apk`
