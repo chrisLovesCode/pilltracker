@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =============================================================================
-# PillTracker E2E Test Runner
+# MediRoutine E2E Test Runner
 # =============================================================================
 # Führt vollständige E2E Tests für alle CRUD-Operationen aus
 #
@@ -102,7 +102,7 @@ print_latest_test_artifacts() {
 }
 
 echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}  PillTracker E2E Tests${NC}"
+echo -e "${BLUE}  MediRoutine E2E Tests${NC}"
 echo -e "${BLUE}  CRUD Operations Testing${NC}"
 echo -e "${BLUE}========================================${NC}\n"
 
@@ -164,7 +164,7 @@ cd android
 echo -e "${YELLOW}Preflight: DB init + UI ready...${NC}"
 if run_gradle_with_timeout "$PREFLIGHT_TIMEOUT_SEC" \
   ./gradlew :app:connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.pilltracker.app.PillTrackerE2ETest#test00_preflightDbInit \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.pilltracker.app.MediRoutineE2ETest#test00_preflightDbInit \
   --console=plain; then
     PREFLIGHT_EXIT_CODE=0
 else
@@ -208,7 +208,7 @@ for TEST_METHOD in "${TEST_METHODS[@]}"; do
     echo -e "${YELLOW}Running ${TEST_METHOD}...${NC}"
     if run_gradle_with_timeout "$TEST_TIMEOUT_SEC" \
       ./gradlew :app:connectedDebugAndroidTest \
-      -Pandroid.testInstrumentationRunnerArguments.class=com.pilltracker.app.PillTrackerE2ETest#${TEST_METHOD} \
+      -Pandroid.testInstrumentationRunnerArguments.class=com.pilltracker.app.MediRoutineE2ETest#${TEST_METHOD} \
       --console=plain; then
         echo -e "${GREEN}✓ ${TEST_METHOD} passed${NC}\n"
     else

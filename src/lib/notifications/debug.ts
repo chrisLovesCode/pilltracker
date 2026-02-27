@@ -5,6 +5,11 @@
  */
 
 import { LocalNotifications } from '@capacitor/local-notifications';
+import {
+  ensureReminderNotificationChannel,
+  REMINDER_CHANNEL_ID,
+  REMINDER_SOUND_FILE,
+} from './scheduler';
 
 export async function cancelAllPendingNotifications(): Promise<void> {
   try {
@@ -104,6 +109,8 @@ export async function debugPendingNotifications(): Promise<void> {
  */
 export async function scheduleTestNotification(): Promise<void> {
   try {
+    await ensureReminderNotificationChannel();
+
     const testDate = new Date();
     testDate.setSeconds(testDate.getSeconds() + 30); // 30 seconds from now
     
@@ -117,7 +124,8 @@ export async function scheduleTestNotification(): Promise<void> {
             at: testDate,
             allowWhileIdle: true,
           },
-          sound: 'default',
+          sound: REMINDER_SOUND_FILE,
+          channelId: REMINDER_CHANNEL_ID,
         }
       ]
     });

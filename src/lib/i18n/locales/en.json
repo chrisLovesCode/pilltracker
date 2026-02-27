@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "PillTracker"
+    "title": "MediRoutine"
   },
   "common": {
     "loading": "Loading..."
@@ -107,7 +107,7 @@
   },
   "help": {
     "title": "Help",
-    "subtitle": "How PillTracker works",
+    "subtitle": "How MediRoutine works",
     "intro": "You can manage medications and groups, schedule reminders, and track your intake in a simple way.",
     "printCardsHint": "Medication cards",
     "sections": {
@@ -130,6 +130,10 @@
       "due": {
         "title": "See due medications",
         "body": "If a scheduled time is reached and not tracked yet, the card is highlighted so you can see what is still open."
+      },
+      "dueProgress": {
+        "title": "Understand the progress line",
+        "body": "At the bottom of each card, you see a thin line. It counts down to the next scheduled intake. When it is almost empty, the next dose is due soon."
       },
       "lastTaken": {
         "title": "Last taken",

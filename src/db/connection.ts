@@ -14,7 +14,7 @@ import { DB_VERSION, RAW_MIGRATIONS } from './migrations';
 
 // NOTE: capacitor-community/sqlite expects the database name WITHOUT ".db"
 // (it manages the file extension internally).
-const DB_NAME = 'pilltracker';
+const DB_NAME = 'mediroutine';
 
 let sqliteConnection: SQLiteConnection | null = null;
 let db: SQLiteDBConnection | null = null;

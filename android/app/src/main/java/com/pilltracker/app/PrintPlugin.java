@@ -14,11 +14,11 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 
 @CapacitorPlugin(name = "Print")
 public class PrintPlugin extends Plugin {
-  private static final String TAG = "PillTrackerPrint";
+  private static final String TAG = "MediRoutinePrint";
 
   @PluginMethod
   public void printCurrent(PluginCall call) {
-    final String jobName = call.getString("jobName", "PillTracker");
+    final String jobName = call.getString("jobName", "MediRoutine");
 
     getActivity().runOnUiThread(
         () -> {

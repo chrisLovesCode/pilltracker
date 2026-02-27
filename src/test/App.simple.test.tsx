@@ -2,13 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import App from '../App';
 
-describe('PillTracker App - Basic Tests', () => {
+describe('MediRoutine App - Basic Tests', () => {
 
   it('sollte die App rendern', async () => {
     render(<App />);
     
     await waitFor(() => {
-      expect(screen.queryByText('PillTracker')).toBeInTheDocument();
+      expect(screen.queryByText('MediRoutine')).toBeInTheDocument();
     }, { timeout: 5000 });
   });
 

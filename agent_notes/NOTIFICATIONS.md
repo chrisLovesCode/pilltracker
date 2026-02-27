@@ -82,7 +82,7 @@ await LocalNotifications.schedule({
 
 ### Battery Optimization
 - User kann Battery Optimization pro App deaktivieren
-- Einstellungen → Apps → PillTracker → Battery → Unrestricted
+- Einstellungen → Apps → MediRoutine → Battery → Unrestricted
 
 ## 🧪 Debug-Tools
 
@@ -148,7 +148,7 @@ LocalNotifications.addListener('localNotificationActionPerformed', notification 
 ### Problem: Benachrichtigungen verzögert
 **Lösung:**
 - Android 12+: Exact Alarm Permission fehlt
-- Einstellungen → Apps → Special Access → Alarms & Reminders → PillTracker → Allow
+- Einstellungen → Apps → Special Access → Alarms & Reminders → MediRoutine → Allow
 
 ### Problem: App im Private Space (Android 15)
 **Lösung:**

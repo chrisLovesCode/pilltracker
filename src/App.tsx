@@ -1,7 +1,7 @@
 /**
  * Main Application Component
  * 
- * PillTracker - Medication tracking application with i18n support.
+ * MediRoutine - Medication tracking application with i18n support.
  * Features medication management, groups, and slide-to-track intake recording.
  */
 import { Icon } from '@iconify/react';
@@ -18,7 +18,7 @@ import HelpPage from './pages/HelpPage';
 import { useMedications } from './hooks/useMedications';
 import { useGroups } from './hooks/useGroups';
 import { printCurrentView } from './lib/print';
-import { getMedicationDueInfo } from './lib/medicationDue';
+import { getMedicationDueInfo, getMedicationNextDoseProgress } from './lib/medicationDue';
 import { translateDosageUnit } from './lib/dosage';
 import { isNativePlatform } from './db';
 import { 
@@ -89,10 +89,10 @@ function App() {
     if (!showDebugUI) return;
 
     const w = window as Window & {
-      __pilltrackerSetNowForTests?: (value: string | number | null) => string;
+      __mediroutineSetNowForTests?: (value: string | number | null) => string;
     };
 
-    w.__pilltrackerSetNowForTests = (value: string | number | null) => {
+    const setNowForTests = (value: string | number | null) => {
       if (value === null || value === '') {
         setTestNowOverrideMs(null);
         return 'OK';
@@ -106,9 +106,10 @@ function App() {
       setTestNowOverrideMs(parsed);
       return 'OK';
     };
+    w.__mediroutineSetNowForTests = setNowForTests;
 
     return () => {
-      delete w.__pilltrackerSetNowForTests;
+      delete w.__mediroutineSetNowForTests;
     };
   }, [showDebugUI]);
 
@@ -215,7 +216,7 @@ function App() {
    */
   const handlePrintCards = async () => {
     try {
-      await printCurrentView('PillTracker');
+      await printCurrentView('MediRoutine');
     } catch (error) {
       console.error('[Print] Failed to open print dialog:', error);
       alert('Druckdialog konnte nicht geöffnet werden.');
@@ -311,6 +312,8 @@ function App() {
     const isHighlighted = scrollToMedicationId === medication.id;
     const effectiveNowMs = testNowOverrideMs ?? nowTimestamp;
     const dueInfo = getMedicationDueInfo(medication, new Date(effectiveNowMs));
+    const nextDoseProgress = getMedicationNextDoseProgress(medication, new Date(effectiveNowMs));
+    const progressPercent = Math.round(nextDoseProgress.progressRemaining * 100);
     const isDue = dueInfo.isDue;
     const translatedUnit = translateDosageUnit(medication.dosageUnit, t);
     const relativeLastTaken = lastIntake ? formatRelativeLastTaken(lastIntake.takenAt, effectiveNowMs) : null;
@@ -320,7 +323,7 @@ function App() {
         key={medication.id} 
         className={`p-4 transition-all duration-300 ${
           isHighlighted ? 'ring-4 ring-brand-focus shadow-lg' : ''
-        } ${isDue ? 'border-2 border-due-border bg-due-bg shadow-lg' : ''}`} 
+        } ${isDue ? 'border-2 border-due-border bg-due-bg shadow-lg' : ''} relative overflow-hidden`} 
         data-testid={`medication-card-${medication.id}`}
       >
         <div className="flex items-start justify-between gap-2 mb-3">
@@ -352,10 +355,10 @@ function App() {
             {isDue && (
               <div className="mt-3">
                 <span
-                  className="inline-flex items-center gap-1 rounded-full bg-due-pill-bg px-2.5 py-1 text-xs font-semibold text-due-pill-text"
+                  className="inline-flex w-fit max-w-full items-center gap-1 whitespace-nowrap rounded-full bg-due-pill-bg px-2.5 py-1 text-xs font-semibold leading-tight text-due-pill-text"
                   data-testid={`medication-due-${medication.id}`}
                 >
-                  <Icon icon="mdi:alarm" className="text-sm" />
+                  <Icon icon="mdi:alarm" className="shrink-0 text-sm" />
                   {formatDueLabel(dueInfo.overdueMs)}
                 </span>
               </div>
@@ -405,10 +408,11 @@ function App() {
             data-testid="last-intake"
             aria-label="last-intake"
           >
-            <p className="text-base font-semibold text-brand-color">
-              {`${t('medications.lastTaken')}: ${relativeLastTaken}`}
+            <p className="text-xs font-semibold leading-tight text-brand-color">
+              <span className="block">{`${t('medications.lastTaken')}:`}</span>
+              <span className="block mt-0.5">{relativeLastTaken}</span>
             </p>
-            <p className="mt-0.5 text-xs text-text-muted">
+            <p className="mt-1 text-xs text-brand-color">
               {formatDateTime(lastIntake.takenAt)}
             </p>
           </div>
@@ -419,6 +423,20 @@ function App() {
           label={t('actions.slideToTrack')}
           testId={`track-medication-${medication.id}`}
         />
+
+        {nextDoseProgress.visible && (
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-dose-progress-track"
+            data-testid={`medication-next-dose-progress-${medication.id}`}
+          >
+            <div
+              className="h-full bg-dose-progress-fill transition-[width] duration-700 ease-linear"
+              style={{ width: `${progressPercent}%` }}
+              data-testid={`medication-next-dose-progress-fill-${medication.id}`}
+              data-progress={nextDoseProgress.progressRemaining.toFixed(4)}
+            />
+          </div>
+        )}
       </Card>
     );
   };
@@ -464,7 +482,7 @@ function App() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-0">
               <Icon icon="mdi:pill" className="text-3xl text-brand-color mr-0.5" />
-              <h1 className="text-2xl font-bold leading-none text-brand-color">PillTracker</h1>
+              <h1 className="text-2xl font-bold leading-none text-brand-color">{t('app.title')}</h1>
             </div>
             <Button
               variant="ghost"

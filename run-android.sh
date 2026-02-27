@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =============================================================================
-# PillTracker Android Build & Deploy Script
+# MediRoutine Android Build & Deploy Script
 # =============================================================================
 # Automatisiert: Build → Sync → Install → Run auf Android Emulator
 #
@@ -18,7 +18,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}  PillTracker Android Build & Deploy${NC}"
+echo -e "${BLUE}  MediRoutine Android Build & Deploy${NC}"
 echo -e "${BLUE}========================================${NC}\n"
 
 # Step 1: Set Java Environment

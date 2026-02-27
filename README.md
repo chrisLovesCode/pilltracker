@@ -1,4 +1,4 @@
-# PillTracker
+# MediRoutine
 
 Offline-first Medikamenten-Tracking-App (React + Capacitor + native SQLite).
 
@@ -29,7 +29,7 @@ Status: **Alpha / Testing** (Schema und Features koennen sich noch stark aendern
 ## APK (schnell testen)
 
 Eine aktuelle Test-APK liegt unter:
-`Latest Android Release/pilltracker_v1.0.0.apk`
+`Latest Android Release/mediroutine_v1.2.0.apk`
 
 ## Screenshots
 
@@ -65,7 +65,7 @@ Ziel: App bedienen ohne manuelles rumklicken und dabei SQL/Crash-Fehler sofort s
 5. Report (HTML): `android/app/build/reports/androidTests/connected/debug/index.html`
 
 Die Instrumentation-Tests sind hier:
-`android/app/src/androidTest/java/com/pilltracker/app/PillTrackerE2ETest.kt`
+`android/app/src/androidTest/java/com/pilltracker/app/MediRoutineE2ETest.kt`
 
 ## Release Build (APK erzeugen)
 
@@ -74,4 +74,4 @@ Die Instrumentation-Tests sind hier:
 ```
 
 Ergebnis:
-`Latest Android Release/pilltracker_v1.0.0.apk`
+`Latest Android Release/mediroutine_v1.2.0.apk`

@@ -3,13 +3,13 @@
 set -euo pipefail
 
 # Build a release APK with the production web bundle (no debug UI),
-# and copy it into "Latest Android Release/pilltracker_v<package.json version>.apk".
+# and copy it into "Latest Android Release/mediroutine_v<package.json version>.apk".
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
 
 APP_VERSION="$(node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); process.stdout.write(p.version);")"
-APK_FILENAME="pilltracker_v${APP_VERSION}.apk"
+APK_FILENAME="mediroutine_v${APP_VERSION}.apk"
 
 export ANDROID_HOME="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
 export PATH="$PATH:$ANDROID_HOME/platform-tools"
@@ -27,7 +27,7 @@ npx cap sync android >/dev/null
 
 echo "[3/4] Building release APK..."
 cd android
-./gradlew :app:assembleRelease -Ppilltracker.viteMode=production --quiet
+./gradlew :app:assembleRelease -Pmediroutine.viteMode=production --quiet
 cd "$ROOT_DIR"
 
 OUT_DIR="$ROOT_DIR/Latest Android Release"

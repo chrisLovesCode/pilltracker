@@ -7,7 +7,7 @@ set -e
 # Add Android SDK to PATH
 export PATH="$HOME/Library/Android/sdk/platform-tools:$PATH"
 
-echo "🧪 Starting E2E tests for PillTracker Android..."
+echo "🧪 Starting E2E tests for MediRoutine Android..."
 
 # Colors
 GREEN='\033[0;32m'
@@ -77,7 +77,7 @@ fi
 
 # Test 6: Take screenshot
 echo -e "\n${BLUE}Test 6: Taking screenshot...${NC}"
-SCREENSHOT_PATH="/sdcard/pilltracker_test_$(date +%Y%m%d_%H%M%S).png"
+SCREENSHOT_PATH="/sdcard/mediroutine_test_$(date +%Y%m%d_%H%M%S).png"
 adb -s "$DEVICE" shell screencap -p "$SCREENSHOT_PATH"
 adb -s "$DEVICE" pull "$SCREENSHOT_PATH" ./test-screenshot.png 2>/dev/null || true
 echo -e "${GREEN}✓ Screenshot saved to ./test-screenshot.png${NC}"

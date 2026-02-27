@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getMedicationDueInfo, isMedicationDue } from '../lib/medicationDue';
+import { getMedicationDueInfo, getMedicationNextDoseProgress, isMedicationDue } from '../lib/medicationDue';
 import type { Medication } from '../types';
 
 function createMedication(overrides: Partial<Medication> = {}): Medication {
@@ -120,5 +120,38 @@ describe('isMedicationDue', () => {
     const dueInfo = getMedicationDueInfo(medication, now);
     expect(dueInfo.isDue).toBe(false);
     expect(dueInfo.overdueMs).toBe(0);
+  });
+
+  it('returns zero remaining progress while medication is due', () => {
+    const now = new Date(2026, 1, 12, 9, 0, 0, 0);
+    const medication = createMedication({
+      scheduleDays: [now.getDay()],
+      scheduleTimes: ['08:00'],
+    });
+
+    const progress = getMedicationNextDoseProgress(medication, now);
+    expect(progress.visible).toBe(true);
+    expect(progress.progressRemaining).toBe(0);
+  });
+
+  it('returns dynamic remaining progress between two daily slots', () => {
+    const now = new Date(2026, 1, 12, 9, 30, 0, 0);
+    const medication = createMedication({
+      scheduleDays: [now.getDay()],
+      scheduleTimes: ['08:00', '12:00'],
+      intakes: [
+        {
+          id: 'int-1',
+          medicationId: 'med-test',
+          takenAt: new Date(2026, 1, 12, 8, 5, 0, 0).toISOString(),
+          createdAt: new Date(2026, 1, 12, 8, 5, 0, 0).toISOString(),
+        },
+      ],
+    });
+
+    const progress = getMedicationNextDoseProgress(medication, now);
+    // 09:30 between 08:00 and 12:00 => 2.5h remaining of 4h cycle.
+    expect(progress.visible).toBe(true);
+    expect(progress.progressRemaining).toBeCloseTo(0.625, 3);
   });
 });

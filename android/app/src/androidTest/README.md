@@ -1,4 +1,4 @@
-# E2E Tests - PillTracker
+# E2E Tests - MediRoutine
 
 ## Übersicht
 
@@ -8,7 +8,7 @@ Die E2E Tests sind vollständig lokalisiert und unterstützen mehrere Sprachen.
 
 Um die Test-Sprache zu ändern:
 
-1. Öffne `PillTrackerE2ETest.kt`
+1. Öffne `MediRoutineE2ETest.kt`
 2. Ändere die `TEST_LANGUAGE` Konstante:
    ```kotlin
    companion object {
@@ -22,7 +22,7 @@ Um die Test-Sprache zu ändern:
 2. Neues String-Objekt erstellen:
    ```kotlin
    object TestStringsFr : TestStrings() {
-       override val appTitle = "PillTracker"
+       override val appTitle = "MediRoutine"
        override val tabMedications = "Médicaments"
        // ... alle anderen Strings übersetzen
    }
@@ -40,7 +40,7 @@ Um die Test-Sprache zu ändern:
    }
    ```
 
-4. Test-Sprache in `PillTrackerE2ETest.kt` setzen:
+4. Test-Sprache in `MediRoutineE2ETest.kt` setzen:
    ```kotlin
    private const val TEST_LANGUAGE = "fr"
    ```
@@ -71,7 +71,7 @@ android/app/build/reports/androidTests/connected/debug/index.html
 ## Test-Struktur
 
 - `TestStrings.kt` - Zentrale String-Verwaltung
-- `PillTrackerE2ETest.kt` - Test-Implementation
+- `MediRoutineE2ETest.kt` - Test-Implementation
 - Alle UI-Strings werden über `strings.*` referenziert
 
 ## Beispiel

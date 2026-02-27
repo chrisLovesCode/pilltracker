@@ -1,6 +1,6 @@
 {
   "appId": "com.pilltracker.app",
-  "appName": "PillTracker",
+  "appName": "MediRoutine",
   "webDir": "dist",
   "server": {
     "androidScheme": "https"
@@ -12,6 +12,9 @@
 			"iosIsEncryption": false,
 			"androidIsEncryption": false,
 			"electronIsEncryption": false
+		},
+		"LocalNotifications": {
+			"sound": "notificationbell.wav"
 		},
 		"StatusBar": {
 			"overlaysWebView": false,

@@ -38,7 +38,7 @@ abstract class TestStrings {
  * Deutsche Test-Strings (Standard)
  */
 object TestStringsDe : TestStrings() {
-    override val appTitle = "PillTracker"
+    override val appTitle = "MediRoutine"
     
     override val tabMedications = "Medikamente"
     override val tabGroups = "Gruppen"
@@ -63,7 +63,7 @@ object TestStringsDe : TestStrings() {
  * Um zu aktivieren: getTestStrings("en") verwenden
  */
 object TestStringsEn : TestStrings() {
-    override val appTitle = "PillTracker"
+    override val appTitle = "MediRoutine"
     
     override val tabMedications = "Medications"
     override val tabGroups = "Groups"

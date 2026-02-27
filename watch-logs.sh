@@ -1,11 +1,11 @@
 #!/bin/bash
 # Watch Android Emulator Logs
-# Filters logs for PillTracker app, database, and migration events
+# Filters logs for MediRoutine app, database, and migration events
 
 # Add Android SDK to PATH
 export PATH="$HOME/Library/Android/sdk/platform-tools:$PATH"
 
-echo "📱 Watching PillTracker Android logs..."
+echo "📱 Watching MediRoutine Android logs..."
 echo "Press Ctrl+C to stop"
 echo "========================================"
 
@@ -30,7 +30,7 @@ adb -s "$DEVICE" logcat \
   -s "CapacitorSQLite:D" \
   -s "CapacitorSQLitePlugin:E" \
   -s "AndroidRuntime:E" \
-  | grep --line-buffered -E "\[DB\]|\[Migrations\]|PillTracker|FATAL|ERROR|capacitor" \
+  | grep --line-buffered -E "\[DB\]|\[Migrations\]|MediRoutine|MediRoutine|FATAL|ERROR|capacitor" \
   | while read -r line; do
     # Colorize output
     if echo "$line" | grep -q "ERROR\|FATAL"; then

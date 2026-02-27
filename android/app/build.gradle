@@ -2,12 +2,18 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
 // Ensure Android Studio "Run" uses the latest web bundle.
-// Disable via: ./gradlew assembleDebug -Ppilltracker.copyWeb=false
-def pilltrackerCopyWeb = (project.findProperty("pilltracker.copyWeb") ?: "true").toString().toBoolean()
+// Disable via: ./gradlew assembleDebug -Pmediroutine.copyWeb=false
+def mediroutineCopyWeb = (
+        project.findProperty("mediroutine.copyWeb")
+        ?: "true"
+).toString().toBoolean()
 // Select which Vite mode to use for the embedded web bundle:
 // - android (default): includes debug UI for local testing
 // - production: hides debug UI, intended for release builds
-def pilltrackerViteMode = (project.findProperty("pilltracker.viteMode") ?: "android").toString()
+def mediroutineViteMode = (
+        project.findProperty("mediroutine.viteMode")
+        ?: "android"
+).toString()
 
 android {
     namespace = "com.pilltracker.app"
@@ -16,8 +22,8 @@ android {
         applicationId "com.pilltracker.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.2.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -43,18 +49,18 @@ android {
     }
 }
 
-if (pilltrackerCopyWeb) {
-    def pilltrackerRoot = rootProject.projectDir.parentFile // /pilltracker (parent of /android)
+if (mediroutineCopyWeb) {
+    def mediroutineRoot = rootProject.projectDir.parentFile // project root (parent of /android)
 
-    tasks.register("pilltrackerCopyWebAssets", Exec) {
-        workingDir pilltrackerRoot
+    tasks.register("mediroutineCopyWebAssets", Exec) {
+        workingDir mediroutineRoot
         // Avoid login shell to prevent user dotfiles from polluting the build.
-        def buildCmd = (pilltrackerViteMode == "production") ? "npm run build" : "npm run build:android"
+        def buildCmd = (mediroutineViteMode == "production") ? "npm run build" : "npm run build:android"
         commandLine "bash", "-c", "${buildCmd} && npx cap copy android"
     }
 
     // Hook into the app build so Android Studio refreshes assets automatically.
-    preBuild.dependsOn(tasks.named("pilltrackerCopyWebAssets"))
+    preBuild.dependsOn(tasks.named("mediroutineCopyWebAssets"))
 }
 
 repositories {

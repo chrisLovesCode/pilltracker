@@ -15,6 +15,7 @@ export default function HelpPage({ onBack }: HelpPageProps) {
     { icon: 'mdi:bell-outline', titleKey: 'help.sections.reminders.title', bodyKey: 'help.sections.reminders.body' },
     { icon: 'mdi:gesture-swipe-right', titleKey: 'help.sections.track.title', bodyKey: 'help.sections.track.body' },
     { icon: 'mdi:alarm', titleKey: 'help.sections.due.title', bodyKey: 'help.sections.due.body' },
+    { icon: 'mdi:timeline-clock-outline', titleKey: 'help.sections.dueProgress.title', bodyKey: 'help.sections.dueProgress.body' },
     { icon: 'mdi:history', titleKey: 'help.sections.lastTaken.title', bodyKey: 'help.sections.lastTaken.body' },
   ] as const;
 

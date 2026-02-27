@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "PillTracker"
+    "title": "MediRoutine"
   },
   "common": {
     "loading": "Lädt..."
@@ -107,7 +107,7 @@
   },
   "help": {
     "title": "Hilfe",
-    "subtitle": "So funktioniert PillTracker",
+    "subtitle": "So funktioniert MediRoutine",
     "intro": "Du kannst hier Medikamente und Gruppen verwalten, Erinnerungen planen und Einnahmen einfach nachhalten.",
     "printCardsHint": "Medikamentekarten",
     "sections": {
@@ -130,6 +130,10 @@
       "due": {
         "title": "Fällige Medikamente sehen",
         "body": "Ist eine Einnahmezeit erreicht und noch nicht getrackt, wird die Karte markiert. So siehst du sofort, was noch offen ist."
+      },
+      "dueProgress": {
+        "title": "Fortschrittslinie verstehen",
+        "body": "Am unteren Rand der Karte siehst du eine schmale Linie. Sie läuft bis zur nächsten Einnahmezeit zurück. Ist sie fast leer, ist die nächste Einnahme bald fällig."
       },
       "lastTaken": {
         "title": "Zuletzt eingenommen",

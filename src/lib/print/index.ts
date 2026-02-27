@@ -6,7 +6,7 @@ type PrintPlugin = {
 
 const Print = registerPlugin<PrintPlugin>('Print');
 
-export async function printCurrentView(jobName: string = 'PillTracker'): Promise<void> {
+export async function printCurrentView(jobName: string = 'MediRoutine'): Promise<void> {
   // Web fallback: show browser print dialog.
   if (!Capacitor.isNativePlatform()) {
     window.print();

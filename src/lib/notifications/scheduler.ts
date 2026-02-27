@@ -5,9 +5,51 @@
  * using Capacitor Local Notifications plugin.
  */
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { Capacitor } from '@capacitor/core';
 import type { Medication } from '../../types';
 import i18n from '../i18n';
 import { translateDosageUnit } from '../dosage';
+
+export const REMINDER_CHANNEL_ID = 'mediroutine-reminders-v1';
+export const REMINDER_SOUND_FILE = 'notificationbell.wav';
+
+let reminderChannelInitialized: Promise<void> | null = null;
+
+function isAndroidPlatform(): boolean {
+  return Capacitor.getPlatform() === 'android';
+}
+
+export async function ensureReminderNotificationChannel(): Promise<void> {
+  if (!isAndroidPlatform()) {
+    return;
+  }
+
+  if (!reminderChannelInitialized) {
+    reminderChannelInitialized = (async () => {
+      await LocalNotifications.createChannel({
+        id: REMINDER_CHANNEL_ID,
+        name: 'Medication Reminders',
+        description: 'Medication reminder notifications',
+        sound: REMINDER_SOUND_FILE,
+        importance: 4,
+        visibility: 1,
+        vibration: true,
+      });
+      console.log(
+        `[Notifications] Channel ensured: ${REMINDER_CHANNEL_ID} (sound=${REMINDER_SOUND_FILE})`,
+      );
+    })().catch(error => {
+      reminderChannelInitialized = null;
+      throw error;
+    });
+  }
+
+  try {
+    await reminderChannelInitialized;
+  } catch (error) {
+    console.error('[Notifications] Failed to ensure reminder channel:', error);
+  }
+}
 
 function hashToU32(input: string): number {
   // Deterministic 32-bit hash (djb2). Good enough for stable notification IDs.
@@ -97,6 +139,7 @@ export async function scheduleMedicationNotifications(medication: Medication): P
   try {
     // First, cancel any existing notifications for this medication
     await cancelMedicationNotifications(medication.id);
+    await ensureReminderNotificationChannel();
 
     // Ensure permission is granted. Some devices report `prompt` until requestPermissions
     // is called via the plugin, even if the OS permission was granted out-of-band.
@@ -166,7 +209,8 @@ export async function scheduleMedicationNotifications(medication: Medication): P
             every: 'week', // Repeat weekly on the same weekday
             allowWhileIdle: true,
           },
-          sound: 'default',
+          sound: REMINDER_SOUND_FILE,
+          channelId: REMINDER_CHANNEL_ID,
           actionTypeId: 'TRACK_MEDICATION',
           extra: {
             medicationId: medication.id,

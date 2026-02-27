@@ -1,4 +1,4 @@
--- PillTracker SQLite schema reference.
+-- MediRoutine SQLite schema reference.
 -- Active migrations live in /src/db/migrations and are applied incrementally.
 -- Keep this file in sync with the latest schema for manual inspection/debugging.
 

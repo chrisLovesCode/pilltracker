@@ -1,4 +1,4 @@
-# PillTracker E2E Tests
+# MediRoutine E2E Tests
 
 Vollständige End-to-End Tests mit **Espresso + UIAutomator** für Android.
 
@@ -91,7 +91,7 @@ Die Tests verwenden:
 3. **Tests einzeln ausführen:**
    ```bash
    cd android
-   ./gradlew connectedAndroidTest --tests "com.pilltracker.app.PillTrackerE2ETest.test03_createMedication"
+   ./gradlew connectedAndroidTest --tests "com.pilltracker.app.MediRoutineE2ETest.test03_createMedication"
    ```
 
 4. **Logs anschauen:**
@@ -101,7 +101,7 @@ Die Tests verwenden:
 
 ## 📝 Eigene Tests hinzufügen
 
-Test-Datei: `android/app/src/androidTest/java/com/pilltracker/app/PillTrackerE2ETest.kt`
+Test-Datei: `android/app/src/androidTest/java/com/pilltracker/app/MediRoutineE2ETest.kt`
 
 Beispiel:
 ```kotlin

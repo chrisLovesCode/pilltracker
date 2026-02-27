@@ -1,4 +1,4 @@
--- PillTracker initial schema migration
+-- MediRoutine initial schema migration
 -- toVersion: 20260210
 
 PRAGMA foreign_keys = ON;
