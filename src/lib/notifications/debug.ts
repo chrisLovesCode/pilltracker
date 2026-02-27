@@ -105,6 +105,44 @@ export async function debugPendingNotifications(): Promise<void> {
 }
 
 /**
+ * Get delivered notifications and log their titles/bodies.
+ * This is useful for E2E verification without relying on notification shade text search.
+ */
+export async function debugDeliveredNotifications(): Promise<void> {
+  try {
+    const delivered = await LocalNotifications.getDeliveredNotifications();
+
+    console.log('\n═══════════════════════════════════════');
+    console.log('📬 DELIVERED NOTIFICATIONS DEBUG');
+    console.log('═══════════════════════════════════════');
+    console.log(`Total delivered: ${delivered.notifications.length}`);
+
+    if (delivered.notifications.length === 0) {
+      console.log('⚠️  No delivered notifications found.');
+      console.log('═══════════════════════════════════════\n');
+      return;
+    }
+
+    for (const notification of delivered.notifications.slice(0, 20)) {
+      const title = notification.title || '(no title)';
+      const body = notification.body || '';
+      console.log(`🆔 ${notification.id} ${title}`);
+      if (body) {
+        console.log(`   ${body}`);
+      }
+    }
+
+    if (delivered.notifications.length > 20) {
+      console.log(`... und ${delivered.notifications.length - 20} weitere`);
+    }
+
+    console.log('═══════════════════════════════════════\n');
+  } catch (error) {
+    console.error('[Debug] Failed to get delivered notifications:', error);
+  }
+}
+
+/**
  * Schedule a test notification to verify the system works
  */
 export async function scheduleTestNotification(): Promise<void> {

@@ -33,6 +33,10 @@ done
 
 PREFLIGHT_TIMEOUT_SEC="${PREFLIGHT_TIMEOUT_SEC:-240}"
 TEST_TIMEOUT_SEC="${TEST_TIMEOUT_SEC:-420}"
+GRADLE_COMMON_ARGS=(
+  "-Pmediroutine.copyWeb=false"
+  "--console=plain"
+)
 
 run_gradle_with_timeout() {
     local timeout_sec="$1"
@@ -165,7 +169,7 @@ echo -e "${YELLOW}Preflight: DB init + UI ready...${NC}"
 if run_gradle_with_timeout "$PREFLIGHT_TIMEOUT_SEC" \
   ./gradlew :app:connectedDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.pilltracker.app.MediRoutineE2ETest#test00_preflightDbInit \
-  --console=plain; then
+  "${GRADLE_COMMON_ARGS[@]}"; then
     PREFLIGHT_EXIT_CODE=0
 else
     PREFLIGHT_EXIT_CODE=$?
@@ -209,7 +213,7 @@ for TEST_METHOD in "${TEST_METHODS[@]}"; do
     if run_gradle_with_timeout "$TEST_TIMEOUT_SEC" \
       ./gradlew :app:connectedDebugAndroidTest \
       -Pandroid.testInstrumentationRunnerArguments.class=com.pilltracker.app.MediRoutineE2ETest#${TEST_METHOD} \
-      --console=plain; then
+      "${GRADLE_COMMON_ARGS[@]}"; then
         echo -e "${GREEN}✓ ${TEST_METHOD} passed${NC}\n"
     else
         TEST_EXIT_CODE=$?

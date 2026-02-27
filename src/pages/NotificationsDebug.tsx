@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Button } from '../components/ui';
 import { 
   debugPendingNotifications, 
+  debugDeliveredNotifications,
   scheduleTestNotification,
   debugNotificationPermissions,
   cancelAllPendingNotifications,
@@ -76,6 +77,16 @@ export default function NotificationsDebug() {
           data-testid="notifications-debug-pending"
         >
           📋 Geplante Benachrichtigungen
+        </Button>
+
+        <Button
+          onClick={() => runDebugAction(debugDeliveredNotifications, 'Zugestellte Benachrichtigungen anzeigen')}
+          disabled={loading}
+          className="w-full"
+          data-testid="notifications-debug-delivered"
+          aria-label="notifications-debug-delivered"
+        >
+          📬 Zugestellte Benachrichtigungen
         </Button>
 
         <Button
