@@ -36,7 +36,7 @@ Eine aktuelle Test-APK liegt unter:
 Medikamenten-Listing (Beispieldaten):
 ![Startseite](screenshots/android-home.png)
 
-Neues Medikament anlegen (ausgefuelltes Formular):
+Neues Medikament anlegen (Formular):
 ![Medikament anlegen](screenshots/android-create-medication.png)
 
 ## Entwicklung (Web)
